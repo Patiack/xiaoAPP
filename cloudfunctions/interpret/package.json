@@ -1,0 +1,9 @@
+{
+  "name": "interpret",
+  "version": "1.0.0",
+  "description": "AI 视点解读：仅基于公开事实摘要，按毛泽东思想/历史唯物主义/辩证唯物主义方法论生成",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

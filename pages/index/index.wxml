@@ -1,0 +1,85 @@
+<!-- pages/index/index.wxml —— 今日热点 -->
+<view class="page">
+
+  <!-- 日期头 -->
+  <view class="date-bar">
+    <view class="date-row">
+      <view class="date">{{today}}</view>
+      <view class="search-ico" bindtap="openSearch">🔍 搜索</view>
+    </view>
+    <view class="motto">实事求是 · 没有调查就没有发言权</view>
+  </view>
+
+  <!-- 今日聚焦入口：一键直达当日精选 -->
+  <view class="focus-entry" bindtap="openFocus">
+    <view class="fe-left">
+      <text class="fe-ico">📌</text>
+      <view class="fe-txt">
+        <view class="fe-title">今日聚焦</view>
+        <view class="fe-sub">当日最热热点 + AI 方法论视点</view>
+      </view>
+    </view>
+    <text class="fe-arrow">›</text>
+  </view>
+
+  <!-- 频道横向滚动标签 -->
+  <scroll-view class="tabs" scroll-x enable-flex>
+    <view
+      wx:for="{{tabs}}"
+      wx:key="*this"
+      class="tab {{currentTab === item ? 'tab-active' : ''}}"
+      data-tab="{{item}}"
+      bindtap="switchTab"
+    >{{item}}</view>
+  </scroll-view>
+
+  <!-- 数据源状态 -->
+  <view class="notice {{isFallback ? 'notice-warn' : ''}}">
+    <block wx:if="{{loading}}">正在获取实时热搜…</block>
+    <block wx:elif="{{isFallback}}">{{errorMsg || '当前为本地示例数据 · 开通云开发后自动接入实时热搜'}}</block>
+    <block wx:else>实时热搜 · {{sourceLabel}}{{updatedLabel ? ' · 更新于 ' + updatedLabel : ''}}</block>
+  </view>
+  <view class="notice-sub">只转述公开事实；事实不足的热点自动标注「暂不解读」，不猜测、不传谣</view>
+
+  <!-- 加载骨架 -->
+  <view class="list" wx:if="{{loading && !list.length}}">
+    <view class="card news skeleton" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+      <view class="sk-line w60"></view>
+      <view class="sk-line w90"></view>
+      <view class="sk-line w70"></view>
+    </view>
+  </view>
+
+  <!-- 热点卡片列表 -->
+  <view class="list">
+    <view
+      wx:for="{{list}}"
+      wx:key="id"
+      class="card news {{item.top ? 'news-top' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="openDetail"
+    >
+      <view class="news-head">
+        <text wx:if="{{item.showRank}}" class="rank rank-{{item.top ? item.rank : 'n'}}">{{item.rank}}</text>
+        <text class="tag">{{item.channel}}</text>
+        <text wx:if="{{item.remote && item.sourceShort}}" class="badge gray">{{item.sourceShort}}</text>
+        <text wx:if="{{item.remote && !item.hasFacts}}" class="badge gray">仅标题</text>
+        <text wx:if="{{item.daily}}" class="badge">今日聚焦</text>
+        <text wx:if="{{!item.remote}}" class="badge gray">示例</text>
+      </view>
+      <view class="news-title">{{item.title}}</view>
+      <view class="news-digest">{{item.digest}}</view>
+      <view class="news-foot">
+        <text class="heat">🔥 {{item.heat}}</text>
+        <text class="viewpoint-hint">{{item.remote ? item.hint : '含今日视点 ›'}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{!loading && list.length === 0}}" class="empty">
+      <block wx:if="{{isFallback}}">暂无本地示例内容</block>
+      <block wx:elif="{{currentTab === '热搜'}}">今日暂无实时热搜，下拉刷新试试</block>
+      <block wx:else>「{{currentTab}}」今日暂无实时热点，换个频道看看</block>
+    </view>
+  </view>
+
+</view>

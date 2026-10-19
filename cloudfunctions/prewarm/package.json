@@ -1,0 +1,9 @@
+{
+  "name": "prewarm",
+  "version": "1.0.0",
+  "description": "定时预热实时热搜的 AI 视点解读，并清理过期归档/缓存",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

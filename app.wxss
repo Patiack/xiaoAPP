@@ -1,0 +1,40 @@
+/**app.wxss —— 红金主题全局样式**/
+page {
+  background: #f7f4ee;
+  font-size: 28rpx;
+  color: #2b2b2b;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+}
+
+/* 通用卡片 */
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 20rpx 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 16rpx rgba(179, 38, 30, 0.06);
+}
+
+/* 频道标签 */
+.tag {
+  display: inline-block;
+  font-size: 22rpx;
+  color: #b3261e;
+  background: rgba(179, 38, 30, 0.08);
+  border: 1rpx solid rgba(179, 38, 30, 0.35);
+  border-radius: 6rpx;
+  padding: 2rpx 14rpx;
+  margin-right: 12rpx;
+}
+
+/* 主按钮 */
+.btn-primary {
+  background: #b3261e;
+  color: #fff;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  border: none;
+}
+.btn-primary:active {
+  opacity: 0.85;
+}

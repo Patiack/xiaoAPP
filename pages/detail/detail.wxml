@@ -1,0 +1,155 @@
+<!-- pages/detail/detail.wxml —— 热点详情 + 事实 + AI 视点 -->
+<view wx:if="{{article}}">
+
+  <!-- 标题区 -->
+  <view class="hero">
+    <view class="hero-meta">
+      <text class="tag light">{{article.channel}}</text>
+      <text class="hero-date">{{today}}</text>
+    </view>
+    <view class="hero-title">{{article.title}}</view>
+    <view class="hero-sub">
+      🔥 热度 {{article.heat}} · 来源：{{article.source}}
+      <text wx:if="{{article.remote}}"> · 实时热搜</text>
+    </view>
+  </view>
+
+  <!-- ============ 实时热搜：事实 + AI 视点 ============ -->
+  <block wx:if="{{article.remote}}">
+
+    <!-- 事实摘要 -->
+    <view class="card body">
+      <view class="section-label">事件概览 · 公开事实摘要</view>
+      <view wx:for="{{article.content}}" wx:key="*this" class="para">{{item}}</view>
+      <view class="source-meta">
+        <text>来源：{{article.source}}</text>
+        <text wx:if="{{article.time}}"> · 抓取于 {{article.time}}</text>
+        <text wx:if="{{article.rank}}"> · 热搜第 {{article.rank}} 位</text>
+      </view>
+      <view wx:if="{{article.url}}" class="rn-link" bindtap="copyLink">🔗 复制原文链接（可在浏览器打开）</view>
+    </view>
+
+    <!-- AI 视点：生成中 -->
+    <view wx:if="{{aiLoading}}" class="card ai-loading">
+      <view class="vp-head">
+        <view class="vp-seal">AI</view>
+        <view>
+          <view class="vp-title">正在生成视点</view>
+          <view class="vp-sub">只依据上方公开事实摘要</view>
+        </view>
+      </view>
+      <view class="ai-loading-text">正在运用矛盾分析法、历史唯物主义与实践论梳理事实<span class="dots">…</span></view>
+      <view class="ai-loading-tip">首次生成约需 5~15 秒；已预热的热点会直接显示</view>
+    </view>
+
+    <!-- AI 视点：失败 -->
+    <view wx:elif="{{aiError}}" class="card ai-error">
+      <view class="ai-error-title">视点暂不可用</view>
+      <view class="ai-error-text">{{aiError}}</view>
+      <view class="retry-btn" bindtap="retryAI">重新尝试</view>
+    </view>
+
+    <!-- AI 视点：可解读 -->
+    <view wx:elif="{{ai && ai.canInterpret}}" class="card viewpoint">
+      <view class="vp-head">
+        <view class="vp-seal ai-seal"><text>AI</text><text>视点</text></view>
+        <view>
+          <view class="vp-title">{{ai.title}}</view>
+          <view class="vp-sub">AI 辅助生成 · 先看懂结论 · 再看方法</view>
+        </view>
+      </view>
+
+      <view wx:if="{{ai.lead}}" class="vp-lead">
+        <text class="vp-lead-tag">大白话</text>
+        <text class="vp-lead-text">{{ai.lead}}</text>
+      </view>
+
+      <view wx:for="{{ai.paras}}" wx:key="m" class="vp-item">
+        <view class="vp-method">{{item.m}}</view>
+        <view class="vp-text">{{item.t}}</view>
+      </view>
+
+      <view wx:if="{{ai.uncertain && ai.uncertain.length}}" class="uncertain">
+        <view class="uncertain-title">尚待权威信息核实</view>
+        <view wx:for="{{ai.uncertain}}" wx:key="*this" class="uncertain-item">· {{item}}</view>
+      </view>
+
+      <view class="vp-note">
+        本视点由 AI 依据公开事实摘要自动生成，仅作方法论分析，不代表本平台对事实的独立核实；不猜测动机、不传播未经证实的信息。事实以原始报道为准。
+      </view>
+    </view>
+
+    <!-- AI 视点：事实不足，主动拒答 -->
+    <view wx:elif="{{ai && !ai.canInterpret}}" class="card no-interpret">
+      <view class="ni-head">
+        <view class="ni-seal">止</view>
+        <view>
+          <view class="ni-title">事实不足 · 暂不解读</view>
+          <view class="ni-sub">实事求是，没有调查就没有发言权</view>
+        </view>
+      </view>
+      <view class="ni-reason">{{ai.reason}}</view>
+      <view class="ni-note">
+        本条热搜目前缺少可供核实的公开事实摘要（或含未经证实的信息）。按既定原则，不作猜测性解读；待权威信息发布后，可下拉刷新热搜榜再查看。
+      </view>
+    </view>
+
+    <!-- 等待数据兜底 -->
+    <view wx:elif="{{!aiLoading && !aiError && !ai}}" class="card ai-error">
+      <view class="ai-error-text">暂未获取到视点，请稍后重试。</view>
+      <view class="retry-btn" bindtap="retryAI">生成视点</view>
+    </view>
+
+    <view class="ai-disclaimer">AI 生成内容 · 仅供方法论参考 · 事实以原文为准</view>
+  </block>
+
+  <!-- ============ 本地示例文章：原有结构 ============ -->
+  <block wx:else>
+    <view class="card body">
+      <view class="section-label">事件概览</view>
+      <view wx:for="{{article.content}}" wx:key="*this" class="para">{{item}}</view>
+    </view>
+
+    <view wx:if="{{article.viewpoint}}" class="card viewpoint">
+      <view class="vp-head">
+        <view class="vp-seal">视点</view>
+        <view>
+          <view class="vp-title">{{article.viewpoint.title}}</view>
+          <view class="vp-sub">先看懂结论 · 再看方法</view>
+        </view>
+      </view>
+
+      <view wx:if="{{article.viewpoint.lead}}" class="vp-lead">
+        <text class="vp-lead-tag">大白话</text>
+        <text class="vp-lead-text">{{article.viewpoint.lead}}</text>
+      </view>
+
+      <view wx:for="{{article.viewpoint.paras}}" wx:key="m" class="vp-item">
+        <view class="vp-method">{{item.m}}</view>
+        <view class="vp-text">{{item.t}}</view>
+      </view>
+      <view class="vp-note">
+        本解读坚持实事求是：仅针对已证实的公开事实作方法论分析，不猜测动机，不引用未经证实的信息。
+      </view>
+    </view>
+  </block>
+
+  <!-- 参考方向：相关热点（仅本地内容） -->
+  <view class="related" wx:if="{{related.length}}">
+    <view class="section-label">同频道其他热点</view>
+    <view
+      wx:for="{{related}}"
+      wx:key="id"
+      class="card rel-item"
+      data-id="{{item.id}}"
+      bindtap="openRelated"
+    >
+      <view class="rel-title">{{item.title}}</view>
+      <text class="rel-arrow">›</text>
+    </view>
+  </view>
+
+  <view style="height: 40rpx;"></view>
+</view>
+
+<view wx:else class="empty">内容不存在或已下线</view>

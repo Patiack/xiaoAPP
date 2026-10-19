@@ -1,0 +1,148 @@
+/* pages/search/search.wxss */
+.page {
+  padding-bottom: 60rpx;
+}
+
+/* 搜索框 */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 24rpx;
+  background: linear-gradient(135deg, #b3261e, #8f1d17);
+}
+.box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 40rpx;
+  padding: 0 24rpx;
+  height: 72rpx;
+}
+.ico {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+  color: #999;
+}
+.input {
+  flex: 1;
+  font-size: 28rpx;
+}
+.ph {
+  color: #b9b9b9;
+  font-size: 26rpx;
+}
+.clear {
+  font-size: 26rpx;
+  color: #999;
+  padding: 0 8rpx;
+}
+.go {
+  color: #fff;
+  font-size: 30rpx;
+  padding: 8rpx 20rpx;
+}
+.go:active {
+  opacity: 0.7;
+}
+
+/* 分区 */
+.sec {
+  margin-top: 8rpx;
+}
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 24rpx 24rpx 4rpx;
+}
+.sec-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #b3261e;
+  padding-left: 16rpx;
+  border-left: 6rpx solid #b3261e;
+}
+.sec-note {
+  font-size: 22rpx;
+  color: #999;
+}
+.sec-op {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 历史 / 提示 chips */
+.hist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 16rpx 24rpx;
+}
+.h-chip {
+  font-size: 26rpx;
+  color: #555;
+  background: #fff;
+  border: 2rpx solid #e5e0d5;
+  border-radius: 32rpx;
+  padding: 10rpx 28rpx;
+}
+.h-chip:active {
+  border-color: #b3261e;
+  color: #b3261e;
+}
+
+/* 结果卡片 */
+.item {
+  margin: 16rpx 24rpx;
+  padding: 24rpx;
+}
+.i-head {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+.badge {
+  font-size: 20rpx;
+  border-radius: 6rpx;
+  padding: 2rpx 12rpx;
+}
+.light-b {
+  color: #b3261e;
+  background: rgba(179, 38, 30, 0.08);
+}
+.gray-b {
+  color: #777;
+  background: #eee;
+}
+.i-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.i-digest {
+  margin-top: 10rpx;
+  font-size: 25rpx;
+  color: #777;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.i-foot {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #aaa;
+}
+
+/* 状态 */
+.loading,
+.empty {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 60rpx 40rpx;
+}

@@ -1,0 +1,9 @@
+{
+  "name": "dailyPush",
+  "version": "1.0.0",
+  "description": "每日热点定时推送（订阅消息，每天 08:00 触发）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

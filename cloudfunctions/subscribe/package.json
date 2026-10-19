@@ -1,0 +1,9 @@
+{
+  "name": "subscribe",
+  "version": "1.0.0",
+  "description": "订阅消息额度记账（subscribe_users 集合）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

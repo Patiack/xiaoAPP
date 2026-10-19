@@ -1,0 +1,95 @@
+<!-- pages/search/search.wxml —— 热点搜索 -->
+<view class="page">
+
+  <!-- 搜索框 -->
+  <view class="bar">
+    <view class="box">
+      <text class="ico">🔍</text>
+      <input
+        class="input"
+        placeholder="搜实时热搜：标题 / 事实摘要关键词"
+        placeholder-class="ph"
+        confirm-type="search"
+        value="{{keyword}}"
+        bindinput="onInput"
+        bindconfirm="doSearch"
+      />
+      <text wx:if="{{keyword}}" class="clear" bindtap="clearKw">✕</text>
+    </view>
+    <view class="go" bindtap="doSearch">搜索</view>
+  </view>
+
+  <!-- 未搜索：搜索历史 -->
+  <block wx:if="{{!searched}}">
+    <view class="sec" wx:if="{{history.length}}">
+      <view class="sec-head">
+        <text class="sec-title">搜索历史</text>
+        <text class="sec-op" bindtap="clearHistory">清空</text>
+      </view>
+      <view class="hist">
+        <text wx:for="{{history}}" wx:key="*this" class="h-chip" data-kw="{{item}}" bindtap="tapHistory">{{item}}</text>
+      </view>
+    </view>
+    <view class="sec">
+      <view class="sec-head"><text class="sec-title">试试这些方向</text></view>
+      <view class="hist">
+        <text wx:for="{{hints}}" wx:key="*this" class="h-chip" data-kw="{{item}}" bindtap="tapHistory">{{item}}</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 搜索结果 -->
+  <block wx:else>
+    <view class="loading" wx:if="{{loading}}">正在检索…</view>
+
+    <block wx:if="{{!loading}}">
+      <!-- 本地解读结果 -->
+      <view class="sec" wx:if="{{local.length}}">
+        <view class="sec-head"><text class="sec-title">本地示例 · {{local.length}} 条</text><text class="sec-note">含示例视点</text></view>
+        <view
+          wx:for="{{local}}"
+          wx:key="id"
+          class="card item"
+          data-id="{{item.id}}"
+          bindtap="openDetail"
+        >
+          <view class="i-head">
+            <text class="tag">{{item.channel}}</text>
+            <text class="badge light-b">示例</text>
+          </view>
+          <view class="i-title">{{item.title}}</view>
+          <view class="i-digest">{{item.digest}}</view>
+        </view>
+      </view>
+
+      <!-- 实时热搜结果 -->
+      <view class="sec" wx:if="{{remote.length}}">
+        <view class="sec-head"><text class="sec-title">实时热搜 · {{remote.length}} 条</text><text class="sec-note">附 AI 视点</text></view>
+        <view
+          wx:for="{{remote}}"
+          wx:key="id"
+          class="card item"
+          data-id="{{item.id}}"
+          bindtap="openDetail"
+        >
+          <view class="i-head">
+            <text class="tag">{{item.channel}}</text>
+            <text class="badge gray-b">{{item.source}}</text>
+            <text wx:if="{{!item.hasFacts}}" class="badge gray-b">仅标题</text>
+          </view>
+          <view class="i-title">{{item.title}}</view>
+          <view class="i-digest">{{item.digest}}</view>
+          <view class="i-foot">🔥 {{item.heat}} · {{item.time || '实时'}}</view>
+        </view>
+      </view>
+
+      <view class="empty" wx:if="{{!local.length && !remote.length && !remoteError}}">
+        没有找到「{{lastKw}}」相关的实时热搜{{cloudOff ? '（实时检索需开通云开发）' : '，换个关键词试试'}}
+      </view>
+      <view class="empty" wx:if="{{remoteError}}">
+        实时热搜检索暂时不可用，以上为本地内容；稍后再试或检查云函数配置
+      </view>
+    </block>
+  </block>
+
+</view>

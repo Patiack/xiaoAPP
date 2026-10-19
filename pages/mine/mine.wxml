@@ -1,0 +1,80 @@
+<!-- pages/mine/mine.wxml —— 我的订阅 -->
+<view class="page">
+
+  <view class="header">
+    <view class="h-title">定制你的每日热点</view>
+    <view class="h-sub">勾选的频道会优先出现在首页「推荐」流；每天早晨推送一条当日最热热点</view>
+  </view>
+
+  <!-- 频道订阅网格 -->
+  <view class="card">
+    <view class="section-label">频道订阅（已选 {{subs.length}}/{{total}}）</view>
+    <view class="grid">
+      <view
+        wx:for="{{channels}}"
+        wx:key="*this"
+        class="chip {{subs.indexOf(item) > -1 ? 'chip-on' : ''}}"
+        data-ch="{{item}}"
+        bindtap="toggleChannel"
+      >
+        <text wx:if="{{subs.indexOf(item) > -1}}" class="tick">✓ </text>{{item}}
+      </view>
+    </view>
+    <view class="ops">
+      <text class="op" bindtap="selectAll">全选</text>
+      <text class="op-line">|</text>
+      <text class="op" bindtap="clearAll">清空</text>
+    </view>
+  </view>
+
+  <!-- 每日推送提醒（订阅消息） -->
+  <view class="card push">
+    <view class="section-label">每日推送提醒</view>
+    <view class="p-desc">每天早晨从实时热搜中，按你勾选的频道挑一条最热热点，推送到微信服务通知</view>
+
+    <view wx:if="{{!cloudOn}}" class="p-off">
+      推送需开通云开发（定时云函数发送）。当前未开通，功能已隐藏推送入口，不影响其它使用
+    </view>
+
+    <block wx:else>
+      <view class="p-row" wx:if="{{quota > 0}}">
+        <text class="p-ok">✓ 已授权 {{quota}} 次推送额度</text>
+        <text class="p-tip">每授权一次只能接收一条，建议每早续订</text>
+      </view>
+      <view class="p-row" wx:else>
+        <text class="p-no">尚未授权，开启后明早生效</text>
+      </view>
+      <button class="btn-primary p-btn" bindtap="subscribeDaily">{{quota > 0 ? '续订一次推送' : '开启每日推送'}}</button>
+      <view class="p-note">个人主体小程序仅支持「一次性订阅」：每次点击授权 = 授予 1 条推送额度，请勾选「总是保持以上选择」实现一键续订</view>
+    </block>
+  </view>
+
+  <!-- 数据与解读说明 -->
+  <view class="card method">
+    <view class="section-label">数据与解读</view>
+    <view class="m-rules">
+      <view class="m-rule">· 实时热搜：微博热搜 + 百度热搜，云端缓存约 8 分钟</view>
+      <view class="m-rule">· AI 视点：DeepSeek，仅依据公开事实摘要生成；事实不足自动拒答</view>
+      <view class="m-rule">· 未开通云开发时展示本地示例内容，界面会明确标注「示例」</view>
+    </view>
+  </view>
+
+  <!-- 解读方法论说明 -->
+  <view class="card method">
+    <view class="section-label">我们如何解读热点</view>
+    <view class="m-item" wx:for="{{methods}}" wx:key="name">
+      <view class="m-name">{{item.name}}</view>
+      <view class="m-desc">{{item.desc}}</view>
+    </view>
+    <view class="m-line"></view>
+    <view class="m-rules">
+      <view class="m-rule">· 事实只转述公开报道摘要并标注来源；没有事实摘要的热点，AI 自动「暂不解读」</view>
+      <view class="m-rule">· 不猜测动机、不引用谣言、不对未证实信息下结论</view>
+      <view class="m-rule">· 观点与事实分离：「事件概览」只讲事实，AI 视点只作方法论分析</view>
+      <view class="m-rule">· AI 生成内容仅供参考，事实以原始报道为准</view>
+    </view>
+  </view>
+
+  <view class="about">每日热点 v{{version}} · 实时热搜 + AI 辅助视点</view>
+  <view style="height: 60rpx;"></view>
+</view>

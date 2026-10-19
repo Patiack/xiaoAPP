@@ -1,0 +1,9 @@
+{
+  "name": "fetchNews",
+  "version": "1.0.0",
+  "description": "微博 + 百度实时热搜聚合（绕开合法域名限制 + 云端缓存 + 当日归档）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
