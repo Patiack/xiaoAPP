@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>中国货币流通 · 六层资金流向图</title>
+<style>
+:root{
+  --bg:#070b14; --bg2:#0b1220; --panel:#0d1424;
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+  --txt:#e8eefc; --mut:#8b9cb8; --mut2:#64748b;
+  --base:#4d8dff; --create:#34d17a; --fiscal:#f5a623; --bond:#a78bfa;
+  --shadow:#22d3ee; --cross:#94a3b8; --warn:#ff7a7a;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  display:flex;flex-direction:column;background:
+    radial-gradient(1200px 600px at 30% -10%, #12203a 0%, transparent 60%),
+    radial-gradient(900px 500px at 90% 110%, #16112c 0%, transparent 55%),
+    var(--bg);
+  color:var(--txt);
+  font-family:"Microsoft YaHei UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+}
+/* ---------- header ---------- */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+  padding:16px 22px 12px;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap}
+h1{margin:0;font-size:19px;font-weight:650;letter-spacing:.3px}
+h1 span{color:var(--mut2);font-weight:400}
+.h-sub{margin:5px 0 0;font-size:12.5px;color:var(--mut);letter-spacing:.2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chip{font:inherit;font-size:12px;color:var(--mut);background:rgba(255,255,255,.035);
+  border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer;
+  transition:.16s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.chip:hover{color:var(--txt);border-color:var(--line2);background:rgba(255,255,255,.07)}
+.chip.on{color:#0a1020;font-weight:650;border-color:transparent}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.85}
+.chip[data-k="all"].on{background:#e8eefc}
+.chip[data-k="base"].on{background:var(--base);color:#04122e}
+.chip[data-k="create"].on{background:var(--create);color:#03150a}
+.chip[data-k="fiscal"].on{background:var(--fiscal);color:#1c1200}
+.chip[data-k="bond"].on{background:var(--bond);color:#14082e}
+.chip[data-k="shadow"].on{background:var(--shadow);color:#00171c}
+.chip[data-k="cross"].on{background:var(--cross);color:#0d1520}
+/* ---------- main ---------- */
+main{flex:1;display:flex;min-height:0}
+#stage{flex:1;min-width:0;position:relative}
+#canvas{width:100%;height:100%;display:block}
+aside{width:392px;flex:none;border-left:1px solid var(--line);background:rgba(8,12,22,.55);
+  overflow-y:auto;padding:16px 16px 28px;backdrop-filter:blur(6px)}
+aside::-webkit-scrollbar{width:8px}
+aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
+/* ---------- footer ---------- */
+footer{flex:none;border-top:1px solid var(--line);background:rgba(8,12,22,.6);padding:10px 18px 12px}
+.ops{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+.op{font:inherit;font-size:12px;color:var(--mut);background:rgba(255,255,255,.04);
+  border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;transition:.15s;
+  display:flex;align-items:center;gap:6px}
+.op:hover{color:var(--txt);background:rgba(255,255,255,.09);border-color:var(--line2);transform:translateY(-1px)}
+.op b{font-weight:650;font-size:11px;opacity:.55}
+.op[data-tone="up"]:hover{border-color:rgba(52,209,122,.55)}
+.op[data-tone="down"]:hover{border-color:rgba(255,122,122,.55)}
+.op[data-tone="flat"]:hover{border-color:rgba(167,139,250,.55)}
+.mrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.metrics{display:flex;gap:8px;flex-wrap:wrap;flex:1}
+.m{min-width:92px;border:1px solid var(--line);border-radius:9px;padding:5px 10px;background:rgba(255,255,255,.025)}
+.m .k{font-size:10.5px;color:var(--mut2);letter-spacing:.3px}
+.m .v{font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.m .v.up{color:var(--create)} .m .v.down{color:var(--warn)} .m .v.zero{color:var(--mut2)}
+.macts{display:flex;gap:8px}
+.btn{font:inherit;font-size:12.5px;padding:7px 14px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line2);background:rgba(255,255,255,.06);color:var(--txt);transition:.15s}
+.btn:hover{background:rgba(255,255,255,.12)}
+.btn.primary{background:linear-gradient(180deg,#3f7bff,#2f5fe0);border-color:transparent;font-weight:600}
+.btn.primary:hover{filter:brightness(1.12)}
+.lastop{margin-top:8px;font-size:12px;color:var(--mut);min-height:16px}
+.lastop b{color:var(--txt);font-weight:600}
+/* ---------- svg ---------- */
+.node{cursor:pointer}
+.node .card{fill:rgba(255,255,255,.045);stroke:rgba(255,255,255,.12);stroke-width:1.2;
+  transition:.18s}
+.node:hover .card{fill:rgba(255,255,255,.08);stroke:rgba(255,255,255,.28)}
+.node.dim .card{opacity:.35}
+.node.dim text{opacity:.3}
+.node.focus .card{fill:rgba(255,255,255,.1);stroke:rgba(255,255,255,.4);stroke-width:1.6}
+.n-title{font-size:24px;font-weight:650;letter-spacing:.5px}
+.n-sub{font-size:14px;fill:var(--mut)}
+.n-sub2{font-size:13px;fill:var(--mut2)}
+.bar{opacity:.9}
+.edge .line{fill:none;stroke-width:2.4;stroke-linecap:round;opacity:.62;
+  transition:opacity .18s,stroke-width .18s}
+.edge .halo{fill:none;stroke:#070b14;stroke-width:10;opacity:.95}
+.edge[data-kind="base"]   .line{stroke:var(--base)}
+.edge[data-kind="create"] .line{stroke:var(--create)}
+.edge[data-kind="fiscal"] .line{stroke:var(--fiscal)}
+.edge[data-kind="bond"]   .line{stroke:var(--bond)}
+.edge[data-kind="shadow"] .line{stroke:var(--shadow)}
+.edge[data-kind="cross"]  .line{stroke:var(--cross)}
+.edge[data-kind="base"]   .elabel{fill:#9dc0ff}
+.edge[data-kind="create"] .elabel{fill:#7fe0a8}
+.edge[data-kind="fiscal"] .elabel{fill:#f7c374}
+.edge[data-kind="bond"]   .elabel{fill:#c4b1fb}
+.edge[data-kind="shadow"] .elabel{fill:#7fe3f2}
+.edge[data-kind="cross"]  .elabel{fill:#b3c1d4}
+.elabel{font-size:15px;fill:var(--mut);letter-spacing:.2px;
+  paint-order:stroke;stroke:#070b14;stroke-width:4.5px;stroke-linejoin:round;
+  transition:opacity .18s,fill .18s}
+.elabel.hi{fill:var(--txt)}
+.badge circle{transition:opacity .18s}
+.badge text{font-size:13px;font-weight:700;fill:#06101f;text-anchor:middle;dominant-baseline:central;
+  font-variant-numeric:tabular-nums;transition:opacity .18s}
+.dimmed{opacity:.09 !important;pointer-events:none}
+.hidden{display:none !important}
+.edge.on .line{opacity:1;stroke-width:3.6;stroke-dasharray:12 7;animation:flow .85s linear infinite}
+.edge.on .elabel{fill:var(--txt)}
+@keyframes flow{to{stroke-dashoffset:-38}}
+.node.on .card{fill:rgba(255,255,255,.11);stroke:rgba(255,255,255,.45);stroke-width:1.8}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{stroke-opacity:.25}50%{stroke-opacity:.9}}
+/* ---------- panel ---------- */
+.pcard{border:1px solid var(--line);border-radius:14px;padding:14px 15px;background:rgba(255,255,255,.028);
+  margin-bottom:12px}
+.pcard h3{margin:0 0 10px;font-size:14px;font-weight:650;letter-spacing:.3px;display:flex;align-items:center;gap:8px}
+.pcard h3 .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  font-size:12px;font-weight:700;color:#06101f;flex:none}
+.pcard p{margin:0 0 9px;font-size:13px;line-height:1.72;color:#c3cfe4}
+.pcard p:last-child{margin-bottom:0}
+.flowline{font-size:12.5px;color:var(--mut);line-height:1.65;padding-left:14px;position:relative;margin-bottom:6px}
+.flowline::before{content:"";position:absolute;left:2px;top:8px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.6}
+table.tacc{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:12px}
+table.tacc th{color:var(--mut2);font-weight:500;text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.4px}
+table.tacc td{padding:5px 6px;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.05);line-height:1.55}
+table.tacc td:first-child{color:var(--mut);white-space:nowrap;width:52px}
+table.tacc .pos{color:#8fd8ff} table.tacc .neg{color:#ffb4b4}
+.impacts{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}
+.imp{font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid;font-variant-numeric:tabular-nums}
+.imp.up{color:#6ee7a8;border-color:rgba(52,209,122,.35);background:rgba(52,209,122,.1)}
+.imp.down{color:#ffb0b0;border-color:rgba(255,122,122,.35);background:rgba(255,122,122,.1)}
+.imp.flat{color:var(--mut);border-color:var(--line2);background:rgba(255,255,255,.04)}
+.one{font-size:13px;line-height:1.75;color:#dfe8f7;border-left:2px solid var(--line2);padding-left:11px;margin-top:11px}
+.legend{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.lg{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--mut)}
+.lg i{width:26px;height:0;border-top:3px solid;border-radius:2px;flex:none}
+.lg.dash i{border-top-style:dashed}
+.kbd{display:inline-block;font-size:11px;padding:1px 6px;border:1px solid var(--line2);border-radius:5px;color:var(--mut)}
+.backbtn{font:inherit;font-size:11.5px;color:var(--mut);background:none;border:none;cursor:pointer;padding:0 0 10px}
+.backbtn:hover{color:var(--txt)}
+/* ---------- 工具箱 ---------- */
+.tbox{cursor:pointer}
+.tbg{transition:.18s}
+.tbox:hover .tbg{fill:rgba(77,141,255,.1);stroke:rgba(77,141,255,.55)}
+.tbox-t{font-size:14.5px;font-weight:650;fill:var(--txt)}
+.tbox-s{font-size:10.5px;fill:var(--mut2)}
+.tbox-n{font-size:13px;font-weight:600}
+.tbox-g{font-size:10px;fill:var(--mut2)}
+.tbox-r{font-size:11px;fill:var(--mut)}
+.lad{display:flex;flex-direction:column;gap:7px;margin:8px 0 4px}
+.lad-row{display:flex;align-items:center;gap:8px}
+.lad-k{width:92px;flex:none;font-size:11px;color:var(--mut);text-align:right;white-space:nowrap}
+.track{position:relative;flex:1;height:9px;border-radius:5px;background:rgba(255,255,255,.07)}
+.track i{position:absolute;top:0;height:9px;border-radius:5px}
+.lad-ax{display:flex;justify-content:space-between;margin-left:100px;font-size:10px;color:var(--mut2);margin-top:3px}
+.tool{border-left:2px solid var(--line2);padding:1px 0 1px 10px;margin-bottom:13px}
+.tool:last-child{margin-bottom:0}
+.tool-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}
+.tool-h b{font-size:12.5px;color:var(--txt);font-weight:650}
+.tool-h span{font-size:10.5px;color:var(--mut2);white-space:nowrap}
+.tool-r{font-size:12px;color:#c3cfe4;line-height:1.7;margin-top:3px}
+.chain{margin:10px 0 2px}
+.ch{border-left:2px solid rgba(77,141,255,.45);padding:1px 0 1px 11px}
+.ch-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px}
+.ch-h b{font-size:13px;color:var(--txt);font-weight:650;letter-spacing:.2px}
+.ch-h span{font-size:10.5px;color:var(--mut2)}
+.ch-d{font-size:11.5px;color:var(--mut);line-height:1.72}
+.ch-ar{display:flex;align-items:center;margin:6px 0 6px 2px;font-size:10.5px;color:var(--mut2)}
+.ch-ar::before{content:"↓";color:#6fa4ff;margin-right:6px;font-size:12px;line-height:1}
+.tool-dl{margin:0 0 6px}
+.tool-dl>div{display:flex;gap:8px;font-size:11px;line-height:1.72}
+.tool-dl i{flex:none;width:26px;font-style:normal;color:var(--mut2)}
+.tool-dl span{flex:1;color:var(--mut)}
+.cp{margin-top:13px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+.cp:first-child{margin-top:4px;padding-top:0;border-top:none}
+.cp-h{margin-bottom:4px}
+.cp-h b{font-size:12.5px;color:var(--txt);display:block;margin-bottom:1px}
+.cp-h span{font-size:10.5px;color:var(--mut2)}
+.cp-d{font-size:11.5px;color:var(--mut);line-height:1.72;margin-bottom:6px}
+.cp-r{display:flex;gap:8px;font-size:11px;line-height:1.68;margin-top:3px}
+.cp-r i{flex:none;width:88px;font-style:normal;color:#9fb2cc}
+.cp-r span{flex:1;color:var(--mut)}
+.au{margin-top:12px}
+.au:first-child{margin-top:4px}
+.au b{font-size:12px;color:var(--txt);display:block;margin-bottom:2px}
+.au p{margin:0;font-size:11.5px;color:var(--mut);line-height:1.72}
+.deep-p{font-size:12.5px;line-height:1.8;color:#dfe8f7;margin:0 0 11px}
+.deep-p:last-child{margin-bottom:0}
+.dtab{width:100%;border-collapse:collapse;margin:2px 0 12px;font-size:11px}
+.dtab th{text-align:left;color:var(--mut2);font-weight:400;padding:0 0 6px;font-size:10.5px}
+.dtab td{vertical-align:top;padding:7px 8px 7px 0;border-top:1px solid rgba(255,255,255,.07);line-height:1.65;color:var(--mut)}
+.dtab td:first-child{width:74px}
+.dtab td b{display:block;font-size:12px;color:var(--txt);font-weight:650}
+.dtab td span{display:block;font-size:10px;color:var(--mut2)}
+.keybox{border-left:2px solid var(--base);background:rgba(77,141,255,.075);padding:10px 12px;
+  border-radius:0 9px 9px 0;font-size:12px;line-height:1.8;color:#dfe8f7;margin:0 0 12px}
+.keybox b{color:#9dc0ff}
+.tl{margin:2px 0 12px}
+.tl-r{display:flex;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.07)}
+.tl-r:first-child{border-top:none}
+.tl-y{flex:none;width:78px;font-size:10.5px;color:var(--mut2);padding-top:2px}
+.tl-b{flex:1}
+.tl-b b{display:block;font-size:12px;color:var(--txt);font-weight:650;margin-bottom:1px}
+.tl-b em{font-style:normal;font-size:11px;color:var(--mut);line-height:1.68}
+.rztree{margin:6px 0 2px}
+.rz1{display:flex;align-items:baseline;gap:8px;padding:4px 0 6px}
+.rz1 b{font-size:12.5px;color:var(--txt);font-weight:650}
+.rz1 span{font-size:10px;color:var(--mut2)}
+.rz2,.rz3{display:flex;align-items:baseline;gap:7px;padding:4px 0;margin-left:7px;border-left:1px solid rgba(255,255,255,.12)}
+.rz2{padding-left:12px;font-size:11.5px;color:#cfdaeb}
+.rz3{padding-left:24px;font-size:11px;color:var(--mut);border-left-color:rgba(255,255,255,.07)}
+.rz2 i,.rz3 i{flex:none;width:7px;height:7px;border-radius:2px;transform:translateY(-1px)}
+.rz2 em,.rz3 em{font-style:normal;color:var(--mut2);font-size:10.5px;margin-left:2px}
+.rz3 b{color:#dfe8f7;font-weight:600;margin-right:2px}
+.era{display:flex;gap:11px;padding:14px 0 13px;border-top:1px solid rgba(255,255,255,.07)}
+.era:first-child{border-top:none;padding-top:4px}
+.era-n{flex:none;width:19px;height:19px;border-radius:50%;background:rgba(77,141,255,.14);
+  border:1px solid rgba(77,141,255,.4);color:#9dc0ff;font-size:10px;line-height:17px;text-align:center;margin-top:1px}
+.era-b{flex:1;min-width:0}
+.era-y{font-size:10.5px;color:var(--mut2);letter-spacing:.3px}
+.era-t{font-size:13px;color:var(--txt);font-weight:650;margin:2px 0 5px}
+.era-m{font-size:11.5px;color:var(--mut);line-height:1.75}
+.era-k{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.era-k span{font-size:10px;color:#9fb2cc;background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.07);border-radius:5px;padding:2px 6px;white-space:nowrap}
+.era-w{margin-top:9px;padding-left:9px;border-left:2px solid rgba(245,166,35,.5);
+  font-size:10.5px;color:#d8c4a0;line-height:1.68}
+.barchart{display:flex;align-items:flex-end;gap:3px;height:118px;margin:8px 0 6px}
+.bc-r{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.bc-b{display:block;width:100%;border-radius:2px 2px 0 0;background:linear-gradient(180deg,#4d8dff,#2b5399)}
+.bc-r em{font-style:normal;font-size:8.5px;color:var(--mut2);margin-top:3px;line-height:1}@media (max-width:1080px){
+  main{flex-direction:column}
+  aside{width:auto;max-height:38vh;border-left:none;border-top:1px solid var(--line)}
+  #stage{min-height:52vh}
+  html,body{overflow:auto;height:auto}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>中国货币流通 · 六层资金流向图 <span>／ 每根箭头都是一笔记账</span></h1>
+    <p class="h-sub">「创造与回笼」决定存量，「周转速度」决定物价 · 点箭头看分录，点方块看角色</p>
+  </div>
+  <nav class="chips" id="chips"></nav>
+</header>
+
+<main>
+  <div id="stage"><svg id="canvas" viewBox="0 0 1760 980" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <aside id="panel"></aside>
+</main>
+
+<footer>
+  <div class="ops" id="ops"></div>
+  <div class="mrow">
+    <div class="metrics" id="metrics"></div>
+    <div class="macts">
+      <button class="btn" id="resetBtn">重置</button>
+      <button class="btn primary" id="demoBtn">▶ 房贷走完全程</button>
+    </div>
+  </div>
+  <div class="lastop" id="lastop"></div>
+  <div style="font-size:11px;color:var(--mut2);line-height:1.6;margin-top:6px">图中的利率与存量取近年量级，用于理解机制；实时数值以央行公布为准。</div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const SVGNS = "http://www.w3.org/2000/svg";
+const C = {
+  base:"#4d8dff", create:"#34d17a", fiscal:"#f5a623",
+  bond:"#a78bfa", shadow:"#22d3ee", cross:"#94a3b8", warn:"#ff7a7a"
+};
+const KIND_NAME = {
+  base:"基础货币", create:"货币创造", fiscal:"财政",
+  bond:"债市", shadow:"非银·影子", cross:"跨境"
+};
+
+/* ============================ 投放工具 ============================ */
+const RATE_CHAIN = [
+  { k:"政策利率", n:"7 天逆回购，1.40%",
+    d:"央行每天向一级交易商出价。它定的是整条链条的<b>起点价</b>，也是最粗的那一根缰绳。" },
+  { ar:"银行之间押着国债互相借钱",
+    k:"DR007", n:"银行间 7 天质押式回购利率",
+    d:"<b>D</b>＝存款类机构，<b>R</b>＝回购，<b>007</b>＝7 天。银行拿利率债（国债、政金债、地方债）做押品互相借 7 天的钱，按成交量加权算出的利率。押品风险低、对手是银行，几乎没有信用风险——所以它是最干净的「批发价」。" },
+  { ar:"银行缺中期资金，发存单去借",
+    k:"同业存单", n:"银行发给同业的借条，1 年以内、可转让",
+    d:"银行把「我欠你钱」写成一张可流通的凭证，卖给其他银行、货基、理财。它是银行的<b>中期批发成本</b>：比 DR007 长，比贷款短，是政策利率与 LPR 之间的中转站。" },
+  { ar:"18 家报价行每月 20 日报一次价",
+    k:"LPR", n:"贷款市场报价利率，分 1 年期和 5 年以上",
+    d:"报价行在政策利率上加点报出，去掉最高最低后取平均。它是银行给<b>最优质客户</b>的贷款利率；房贷看 5 年以上那一档。" },
+  { ar:"银行再按你的资质加一笔风险溢价",
+    k:"贷款利率", n:"你实际付的那个数",
+    d:"同样看 LPR，国企和民企、有抵押和无抵押、三年期和三十年期，加的点完全不同。所以政策利率降 10bp，你的月供未必同幅下降。" }
+];
+
+const TOOLS = [
+  { name:"7 天逆回购", tag:"7天 · 质押", kind:"base",
+    short:"定价格：短端利率的锚，每天可调",
+    tenor:"7 天（临时隔夜正/逆回购围绕它 −20bp / +50bp）",
+    obj:"一级交易商（约 50 家，含券商；名单见上）",
+    price:"固定利率、数量招标 —— 利率由央行定死，这就是政策利率",
+    way:"质押式：债券押在央行，到期还钱赎券",
+    role:"唯一的价格型工具。每天报价、每天可调。它一动，银行间利率、存单、LPR、贷款利率会顺着往下传——这条链下一节拆开讲。",
+    bar:[18,24] },
+  { name:"买断式逆回购", tag:"3M/6M · 买断", kind:"base",
+    short:"所有权转移，盘活持债，填中期空白",
+    tenor:"3 个月 / 6 个月",
+    obj:"一级交易商（同一批机构，名单见上）",
+    price:"固定数量、利率招标、多重价位中标 —— 利率由机构报出来，随行就市",
+    way:"买断式：债券所有权转移给央行，券不再属于银行",
+    role:"2024 年 10 月启用。① 补上 1 个月到 1 年的期限空白；② 因为所有权转移，银行的券被真正卖掉、释放了质押额度，能跨季跨年用。它的价格由机构报价决定、不由央行宣布——详见上面「招标是怎么回事」。",
+    bar:[38,58] },
+  { name:"MLF", tag:"1年 · 质押", kind:"base",
+    short:"中期补水；已退出政策利率角色",
+    tenor:"1 年",
+    obj:"一级交易商（以大行、股份行为主，名单见上）",
+    price:"利率招标、多重价位中标（2025 年 3 月起）—— 已退出政策利率",
+    way:"质押式",
+    role:"曾经是最重要的中期工具，也是政策利率的锚。2025 年 3 月起改多重价位中标，政策利率角色让给了 7 天逆回购，余额在压降。",
+    bar:[57,63] },
+  { name:"PSL", tag:"3-5年 · 政策行", kind:"fiscal",
+    short:"给政策性银行，投向棚改/保交楼",
+    tenor:"3–5 年",
+    obj:"政策性银行（只有 3 家，名单见上）",
+    price:"央行直接定价，通常低于同期限市场利率",
+    way:"质押（高质量资产）",
+    role:"准财政。钱带指定用途：棚改、水利、保交楼、城中村改造。期限长、不经过商业银行，所以它对 M2 的传导路径和普通贷款不一样。",
+    bar:[76,96] },
+  { name:"再贷款", tag:"定向 · 低息", kind:"create",
+    short:"定向低息，银行转贷，额度≠用掉",
+    tenor:"通常 1 年，可展期",
+    obj:"各类银行（大行、股份行、城商行、农商行都能申请）",
+    price:"央行定价，通常低于同期限市场利率",
+    way:"信用 / 质押",
+    role:"结构性工具：支农支小、科技创新、碳减排、普惠养老。定向、带用途、带考核——额度批下来不等于用得出去，银行得先找到合格企业，传导经常打折。",
+    bar:[48,64] },
+  { name:"降准", tag:"永久 · 非投放", kind:"cross",
+    short:"不是投放：法定转超额，动乘数",
+    tenor:"永久",
+    obj:"全部存款类机构（银行、农信社、村镇银行、外资行）",
+    price:"没有价格 —— 它改的是准备金比例，不是利率",
+    way:"不产生新的基础货币，只改准备金的构成",
+    role:"把法定准备金转成超额准备金，基础货币一分没多。它解锁的是「能贷多少」，不是「有多少」——降准降的是乘数的分母。",
+    bar:[0,100] }
+];
+/* ---------- 基础货币的五个时代 ---------- */
+const ERAS = [
+  { y:"1994 以前", n:"再贷款时代", tone:"cross",
+    m:"央行直接给专业银行（工行、农行这些）放信用贷款，支持粮棉油收购和国企流动资金；财政也能向央行透支。货币创造的主导权在国内信贷端，外汇不是主角。",
+    k:["外汇占款占比 26.4%","外储 212 亿美元（1993）","支付能力仅 1.3 个月进口"],
+    w:"1993 年汇率双轨、黑市盛行，外储不够三个月进口——倒逼 1994 年并轨。" },
+  { y:"1994 — 2005", n:"外汇占款接棒", tone:"base",
+    m:"1994 年 1 月 1 日汇率并轨，同时建立银行间外汇市场和强制结售汇：企业经常项目外汇收入必须 100% 卖给指定银行，银行再卖给央行。央行每买一笔外汇就支付一笔人民币，这就是外汇占款。",
+    k:["1994 当年 55.5%","此前长期低于 10%","2005.10 突破 100%"] },
+  { y:"2005 — 2014", n:"双顺差高峰与对冲", tone:"fiscal",
+    m:"2005 年 7 月 21 日汇改，人民币不再单一盯住美元，进入渐进升值。入世后的双顺差把外储推到 2014 年 6 月的近 4 万亿美元，外汇占款 2014 年 5 月见顶 27.3 万亿元。被动投放太多，央行只能对冲：先削减再贷款，2003 年后发央票，2006 年后主要靠提准。",
+    k:["2006.5 占比 113.56%","对冲率一度约 80%","外储近 4 万亿（2014.6）"],
+    w:"2005 年美欧施压叠加热钱流入，固定汇率守不住——汇改启动。" },
+  { y:"2014 — 2018", n:"逆转与接棒", tone:"shadow",
+    m:"2014 年 5 月外汇占款见顶后转入持续下降，资本流出成为主导。央行被动投放的渠道枯竭，只能转向主动工具——逆回购、MLF、PSL 接棒。",
+    k:["2015 年 −2.21 万亿","2016 年 −2.91 万亿","2017.2 余额 21.7 万亿","MLF 余额一年增 4.19 倍"],
+    w:"美联储 2014 年 10 月结束 QE，美元走强，人民币预期反转——钱开始往外走。" },
+  { y:"2018 至今", n:"主动工具常态化", tone:"create",
+    m:"基础货币的投放完全由央行主动决定：7 天逆回购定价格，MLF、PSL、再贷款给中期和结构性资金，2024 年 10 月又添了买断式逆回购。投放从「被动接外汇」变成「主动选工具」。",
+    k:["7 天逆回购＝政策利率","买断式逆回购 2024.10","MLF 2025.3 退出政策利率"],
+    w:"被动渠道没了，只能自己定价、自己选期限——这就是「② 投放工具箱」的由来。" }
+];
+
+const SURPLUS = [[2002,304],[2003,255],[2004,321],[2005,1020],[2006,1775],[2007,2639],
+  [2008,2981],[2009,1957],[2010,1815],[2011,1549],[2012,2303],[2013,2590],[2014,3830],[2015,5939]];
+/* ---------- 对手方图鉴 ---------- */
+const COUNTERPARTIES = [
+  { key:"一级交易商",
+    sub:"央行公开市场业务一级交易商 · 约 50 家，名单每年调整一次",
+    d:"只有进了这个名单，才能直接和央行做逆回购、买断式逆回购、MLF。名单里有银行，也有证券公司——这一点很多人不知道。",
+    rows:[
+      ["国有大行（6）","工行、农行、中行、建行、交行、邮储"],
+      ["股份行（12）","招商、浦发、中信、兴业、光大、民生、华夏、广发、平安、浙商、恒丰、渤海"],
+      ["头部城商行","北京银行、上海银行、江苏银行、南京银行、宁波银行等"],
+      ["外资行","汇丰（中国）、渣打（中国）、花旗（中国）等"],
+      ["证券公司","中信证券、国泰君安、中金公司、招商证券等"]
+    ]},
+  { key:"政策性银行",
+    sub:"3 家：国开行、进出口行、农发行",
+    d:"它们不是商业银行，不吸收公众存款，靠发债筹钱、按国家意志放贷。PSL 只给它们——所以这笔钱可以绕过商业银行，直接进项目。",
+    rows:[
+      ["国家开发银行","基建、棚改、城中村改造、重大战略项目"],
+      ["进出口银行","外贸、跨境、「一带一路」、成套设备出口"],
+      ["农业发展银行","粮棉油收储、农业农村基础设施、乡村振兴"]
+    ]},
+  { key:"全部存款类机构",
+    sub:"降准的适用对象：所有要交法定准备金的机构",
+    d:"只要吸收存款、要向央行交法定准备金，就在降准的覆盖范围内。所以降准是「普降」，影响面比逆回购宽得多——但降准不挑对象，钱最后去哪由银行自己决定。",
+    rows:[
+      ["商业银行","大行、股份行、城商行、农商行"],
+      ["小法人机构","村镇银行、农信社、农村合作银行"],
+      ["外资行","在华法人银行"]
+    ]}
+];
+
+/* ---------- 招标机制 ---------- */
+const AUCTION = [
+  { k:"招标", d:"央行把「我借出多少钱、借多久」挂出来，让几十家机构同时报价，按事先公布的规则分配。跟拍卖会一个道理，只不过拍的是钱的价格——谁报得让央行划算，谁先拿到。" },
+  { k:"数量招标", d:"利率由央行定死，机构只报「我要多少」。要的总量超过投放量，就按比例分配。→ 7 天逆回购走这条：价格央行说了算，所以它是政策利率。" },
+  { k:"利率招标", d:"金额由央行定死，机构报「我要多少、要什么价」。央行从报价最优的开始分配，分完为止。→ 买断式逆回购走这条：价格是市场报出来的。" },
+  { k:"单一价位中标", d:"所有中标机构按同一个利率成交（通常取最后一笔成交的边际利率）。也叫荷兰式。→ 早期 MLF 用过。" },
+  { k:"多重价位中标", d:"各按各报的利率成交，报得优的先拿。也叫美式。→ MLF 2025 年 3 月起改成这个，价格不再由央行一口价宣布，政策利率属性随之淡出。" }
+];
+/* ============================ 节点 ============================ */
+const NODES = [
+  { id:"off",  x:240,  y:120, w:240, h:100, tone:"cross",
+    title:"境外 / 离岸", sub:"CNH · 跨境结算",
+    sub2:"离岸价差是先行的压力表",
+    role:[
+      "香港、伦敦的离岸人民币不受境内管制，CNH 与 CNY 的价差往往先于官方表态反映压力。",
+      "跨境这条管子决定的是央行「被动投放」这条渠道的粗细，不是 M2 的大小。它比 2014 年以前细得多——因为企业不结汇了，也因为央行改用了主动工具。"
+    ]},
+  { id:"pbc",  x:830,  y:120, w:320, h:100, tone:"base",
+    title:"中央银行", sub:"基础货币的唯一源头",
+    sub2:"只和金融机构做对手方",
+    role:[
+      "资产端即投放渠道：外汇占款、对政府债权、对其他存款性公司债权（逆回购、MLF、买断式逆回购、PSL、再贷款）。",
+      "负债端即钱的形式：流通中现金、准备金存款、政府存款、央票。政府存款不在「储备货币」里——这一条决定了税收和发债为什么是抽水。"
+    ]},
+  { id:"mof",  x:1440, y:120, w:290, h:100, tone:"fiscal",
+    title:"财政", sub:"体系的第二个水位调节器",
+    sub2:"政府存款是央行的负债",
+    role:[
+      "收税＝抽水，支出＝放水，发债＝抽水，把钱花出去＝放水。",
+      "所以「财政发力」看的从来不是发行规模，是支出进度。发行 1 万亿而资金躺在国库，对流动性是负贡献。",
+      "《人民银行法》第 29 条：不得直接认购、包销国债，只能在二级市场买卖。"
+    ]},
+  { id:"mkt",  x:1440, y:360, w:290, h:110, tone:"bond",
+    title:"债券市场", sub:"同时干三件事",
+    sub2:"融资 / 抵押品 / 定价",
+    role:[
+      "① 融资：政府债与信用债替实体借钱。② 抵押品：国债可反复质押做回购，层层加杠杆，这是「周转速度」被放大的地方。",
+      "③ 定价：国债收益率曲线是社会无风险利率锚，决定信用利差、贷款利率、股票贴现率。它不只是融资场所，是定价场所。"
+    ]},
+  { id:"bank", x:830,  y:420, w:360, h:130, tone:"create",
+    title:"银行体系", sub:"存款货币在这里被创造",
+    sub2:"五道闸：准备金·资本·流动性·审慎·风险偏好",
+    role:[
+      "一笔贷款发放＝资产＋贷款、负债＋存款。银行不需要先有这笔存款，只需要有准备金和资本支撑这笔资产。",
+      "还本时两者同时注销，货币被消灭。整个体系的扩张和收缩，就藏在这一借一还的记账里。",
+      "跨行支付不是搬钱：准备金在央行账户间划转，一笔转账只是账本上同时记两笔。"
+    ],
+    deep:[
+      { h:"准备金是什么", b:[
+        '商业银行存在央行账上的钱，加上一点点库存现金。它是<b>银行的资产、央行的负债</b>：不能拿去放贷，也不是给储户取的——绝大部分只是一串记在央行账本上的数字。',
+        '<div class="rztree">' +
+          '<div class="rz1"><b>基础货币</b><span>央行的负债，由它主动投放</span></div>' +
+          '<div class="rz2"><i style="background:#4d8dff"></i>流通中现金 M0<em>老百姓和企业口袋里的钞票</em></div>' +
+          '<div class="rz2"><i style="background:#34d17a"></i>准备金<em>银行存在央行的钱</em></div>' +
+          '<div class="rz3"><i style="background:#34d17a"></i><b>法定准备金</b><em>按存款比例必须交，锁死不能动</em></div>' +
+          '<div class="rz3"><i style="background:#22d3ee"></i><b>超额准备金</b><em>自愿多存的，可随时动用</em></div>' +
+        '</div>'
+      ]},
+      { h:"它解决三个问题", b:[
+        '<b style="color:#e8eefc">① 支付清算的最终手段。</b>你从 A 行转 1 万到 B 行，钞票没有动，动的是央行账本上两笔分录：A 的准备金 −1 万，B 的 +1 万。准备金不够，转账就过不去——这才是「钱紧」最物理的形态。',
+        '<b style="color:#e8eefc">② 货币创造的闸门。</b>银行放贷凭空造存款，但每笔存款都要按比例补准备金，还要应付提现和跨行支付。准备金总量决定了整个体系能扩张到多大——它就是货币乘数的分母。',
+        '<b style="color:#e8eefc">③ 短端利率的锚。</b>银行之间互相借的，就是超额准备金（质押回购市场）。超额准备金多，借钱容易，DR007 就低；少了，利率被顶上去。所以央行调准备金供给，等于在调短端利率。'
+      ]},
+      { h:"三个常见的误解", b:[
+        '<b style="color:#e8eefc">「银行把存款的一部分留起来当准备金」——顺序反了。</b>银行是先放贷创造出存款，再为这笔存款补足准备金；准备金来自央行（逆回购、MLF、外汇占款），不是从存款里切一块。',
+        '<b style="color:#e8eefc">「准备金是放在金库里的钞票」——不是。</b>绝大部分是央行账本上的数字。准备金是「银行在央行的存款」，和「央行发行的现金」是两回事。',
+        '<b style="color:#e8eefc">准备金 ≠ 居民存款。</b>准备金是银行的资产，居民存款是银行的负债，两者在资产负债表的两端，方向正好相反。'
+      ]},
+      { h:"那降准到底做了什么", b:[
+        '降准不改变准备金总量，只是把「法定」那一栏挪到「超额」那一栏——同一笔钱换个抽屉。基础货币一分没多，变的是能动用的比例，所以乘数变大。',
+        '这也解释了为什么降准常被叫作「放水」却并不等于放水：<b style="color:#e8eefc">它松开的是闸门，不是水源。</b>'
+      ]}
+    ]},
+  { id:"nbfi", x:1440, y:600, w:290, h:110, tone:"shadow",
+    title:"非银 / 影子银行", sub:"理财·货基·保险·信托·资管",
+    sub2:"改的是钱的位置和速度",
+    role:[
+      "非银本身不直接创造存款货币，它调动的是既有存款。但当它的资金最终来自银行体系（同业、理财对接）并用于放贷时，全系统的存款货币是增加的——这就是「影子银行创造货币」。",
+      "所以：创造主体始终是银行的资产负债表（含表外和同业链条），非银是通道，不是创造者。"
+    ]},
+  { id:"real", x:830,  y:790, w:580, h:150, tone:"create",
+    title:"实体：企业 + 居民", sub:"货币的最终落脚点，也是被抽走的地方",
+    sub2:"钱在这里转手，也在这里停下",
+    role:[
+      "企业的投资意愿和居民的资产负债表状态，决定了钱是继续转手还是停在存款里。",
+      "实体之间相互欠款，本质上是在互相发行货币。所以「三角债」会同时表现为「钱紧」——支付手段不够，不是因为钞票不够。"
+    ]}
+];
+
+/* ============================ 箭头 ============================ */
+const EDGES = [
+  { id:"e1", num:1, kind:"cross", d:"M 360 120 L 670 120",
+    badge:[436,120], labels:[{x:516,y:100,t:"外汇占款：结汇 → 投放准备金",a:"middle"}],
+    title:"境外 → 央行：外汇占款",
+    flow:["出口收汇：银行买入外汇、给企业记一笔存款（这里就创造了货币）","银行再把外汇卖给央行，换回准备金"],
+    tacc:[{who:"央行",l:"资产 外汇 ＋100",r:"负债 准备金 ＋100"},
+          {who:"银行",l:"资产 准备金 ＋100",r:"负债 企业存款 ＋100"}],
+    impact:[["M2","+100","up"],["基础货币","+100","up"]],
+    one:"这是 2014 年以前基础货币的主渠道：被动、不由自己控制。它决定的是「基础货币从哪来」，不是「M2 有多少」——M2 的大头始终是银行信贷。现在「藏汇于民」削弱了它：企业不结汇，这条管子就细了。",
+    deep:[
+      '<table class="dtab"><tr><th>项目</th><th>谁创造</th><th>和外汇的关系</th></tr>' +
+      '<tr><td><b>M2</b><span>存款货币</span></td><td>商业银行放贷</td><td>基本无关：贷款创造存款，还本消灭存款</td></tr>' +
+      '<tr><td><b>基础货币</b><span>准备金＋现金</span></td><td>央行的资产端</td><td>2003–2014 年外汇占款是主渠道，现在是逆回购 / MLF / PSL</td></tr></table>',
+      '<div class="keybox">央行买外汇不是「拿外汇做抵押发行人民币」，而是：<b>资产端多了一笔外汇，负债端凭空记一笔准备金</b>。资产负债表恒等式决定了买汇必然创造基础货币——是「买汇」这个动作在印钱，不是「有外汇」这个前提在印钱。</div>',
+      '<div class="tl">' +
+        '<div class="tl-r"><span class="tl-y">1994 以前</span><div class="tl-b"><b>再贷款</b><em>央行直接给专业银行（工行、农行这些）放信用贷款，支持粮棉油收购和国企流动资金。和外汇没有关系。</em></div></div>' +
+        '<div class="tl-r"><span class="tl-y">1994–2014</span><div class="tl-b"><b>外汇占款</b><em>结售汇制度 + 央行守汇率，被动买入外汇、投放准备金。</em></div></div>' +
+        '<div class="tl-r"><span class="tl-y">2015 至今</span><div class="tl-b"><b>对其他存款性公司债权</b><em>逆回购、MLF、PSL、买断式逆回购主动投放。</em></div></div>' +
+      '</div>',
+      '<b style="color:#e8eefc">当时几乎没有外汇。</b>1978 年外汇储备 1.67 亿美元，1993 年底 212 亿美元——不够三个月进口。所以这套体系不是「先有外汇再发钞」，而是反过来：1994 年汇率并轨（官方汇率 5.80 并到 8.70）、建起银行间外汇市场和结售汇制度之后，企业必须把外汇卖给银行、银行再卖给央行；央行为了守住汇率，被动地把多出来的外汇全买下来，每买一笔就记一笔准备金负债。',
+      '真正让这条管子变粗的是 2001 年入世后的双顺差：外汇储备从 2121 亿美元涨到 2014 年的 3.99 万亿，外汇占款一度是基础货币增量的全部甚至更多——因为别的投放渠道在净回笼。',
+      '被动投放的副作用必须对冲：央行发央票、把存款准备金率从 6% 一路提到 21.5%（大型银行 2011 年的峰值），把多出来的流动性锁回去。那一轮的高存准率，本质是外汇占款的对冲产物，不完全是审慎监管。',
+      '2014 年 5 月外汇占款见顶（约 27 万亿元），之后资本流出、这条管子反转，央行失去被动投放渠道，才转向逆回购、MLF、PSL 主动投放——这就是「② 央行投放工具箱」那一节为什么重要。',
+      '<b style="color:#e8eefc">回到问题本身：外汇占款决定的是「基础货币从哪来」，不是「M2 有多少」。</b>M2 的大头始终是银行信贷创造的存款。把这两层混成一层，就会得出「中国的钱是按外汇比例印的」——这个说法不成立。'
+    ] },
+
+  { id:"e2", num:2, kind:"base", d:"M 790 170 L 790 355",
+    badge:[790,222], labels:[{x:776,y:266,t:"投放：逆回购 / MLF / 再贷款",a:"end"}],
+    title:"央行 → 银行：投放准备金",
+    flow:["六件工具，期限从 7 天到 5 年不等（左侧工具卡片）","共同点：都是「央行对金融机构的债权」，都不直接对实体放款"],
+    tacc:[{who:"央行",l:"资产 对其他存款性公司债权 ＋100",r:"负债 准备金存款 ＋100"},
+          {who:"银行",l:"资产 准备金 ＋100",r:"负债 向央行借款 ＋100"}],
+    impact:[["M2","0","flat"],["基础货币","+100","up"],["准备金","+100","up"]],
+    one:"钱先落在银行间市场，还没到实体。这一步只决定「有没有水」，不决定「水去哪」。用哪件工具、给多长期限，才决定这笔水会不会流到工地上去。降准不属于这一步：它不增加基础货币，只是把法定准备金转成超额准备金，动的是乘数的分母。" },
+
+  { id:"e3", num:3, kind:"base", d:"M 880 355 L 880 170", dash:true,
+    badge:[880,330], labels:[{x:894,y:258,t:"回笼：到期不续作 / 正回购",a:"start"}],
+    title:"银行 → 央行：回笼",
+    flow:["逆回购到期、MLF 到期不续作、发行央票"],
+    tacc:[{who:"央行",l:"资产 对其他存款性公司债权 −100",r:"负债 准备金存款 −100"},
+          {who:"银行",l:"资产 准备金 −100",r:"负债 向央行借款 −100"}],
+    impact:[["M2","0","flat"],["基础货币","−100","down"]],
+    one:"回笼只是把水抽回池子，不直接减少 M2；但银行少了准备金，可贷空间随之收窄。" },
+
+  { id:"e4", num:4, kind:"fiscal", d:"M 990 120 L 1295 120", dash:true, noHead:true,
+    badge:[1142,120], labels:[{x:1142,y:100,t:"政府存款账户（同一笔钱的两端）",a:"middle"}],
+    title:"央行 ↔ 财政：政府存款",
+    flow:["在央行的资产负债表上是负债","在财政那里是存款——同一笔钱的两个视角"],
+    tacc:[{who:"央行",l:"—",r:"负债 政府存款"},
+          {who:"财政",l:"资产 在央行存款",r:"—"}],
+    impact:[["自身","不产生变动","flat"]],
+    one:"这条线不是流量，是一个账户。正因为财政的钱记在央行负债上，收税和发债才能直接压低基础货币。" },
+
+  { id:"e5", num:5, kind:"create", d:"M 760 485 L 760 715",
+    badge:[760,530], labels:[{x:746,y:566,t:"放贷：资产＋贷款 / 负债＋存款",a:"end"}],
+    title:"银行 → 实体：放贷（货币被创造）",
+    flow:["银行资产端 ＋ 一笔贷款","银行负债端 ＋ 一笔存款——货币在这一瞬间被创造"],
+    tacc:[{who:"银行",l:"资产 贷款 ＋100",r:"负债 企业/居民存款 ＋100"}],
+    impact:[["M2","+100","up"],["基础货币","0","flat"]],
+    one:"货币是记账记出来的：银行不需要先有这笔存款。约束不是「有没有钱」，是准备金、资本充足率、流动性和银行自己的风险偏好。存款是银行资产的镜像——多数是贷款，也可以是债券、外汇占款或对非银债权。" },
+
+  { id:"e6", num:6, kind:"create", d:"M 900 715 L 900 485",
+    badge:[900,690], labels:[{x:914,y:612,t:"还本：贷款− 存款−",a:"start"}],
+    title:"实体 → 银行：还本（货币被消灭）",
+    flow:["借款人用存款还本","银行的贷款和存款同时减少"],
+    tacc:[{who:"银行",l:"资产 贷款 −100",r:"负债 存款 −100"}],
+    impact:[["M2","−100","down"],["贷款余额","−100","down"]],
+    one:"还本同时注销一笔资产和一笔负债，货币从账本上消失。扩张和收缩都藏在这一借一还里，不在任何一张印出来的钞票上。" },
+
+  { id:"e7", num:7, kind:"create", d:"M 985 715 L 985 485",
+    badge:[985,640], labels:[{x:999,y:588,t:"付息",a:"start"}],
+    title:"实体 → 银行：付息",
+    flow:["利息从存款账户扣走","存款消失，变成银行的利息收入（权益）"],
+    tacc:[{who:"银行",l:"—",r:"负债 存款 −100"}],
+    impact:[["M2","−100","down"],["债务本金","不变","flat"]],
+    one:"利息不是「钱从左边口袋到右边口袋」：存款被注销、变成银行收入。所以高息债务滚动会持续抽走可支出货币。" },
+
+  { id:"e8", num:8, kind:"fiscal", d:"M 1120 790 C 1320 800 1680 748 1680 600 L 1680 262 C 1680 166 1640 120 1585 120",
+    badge:[1680,470], labels:[{x:1452,y:800,t:"税收 → 国库（抽水）",a:"middle"}],
+    title:"实体 → 财政：税收（抽水）",
+    flow:["企业存款 −，银行准备金 −","央行负债「政府存款」＋"],
+    tacc:[{who:"银行",l:"资产 准备金 −100",r:"负债 企业存款 −100"},
+          {who:"央行",l:"—",r:"负债 准备金 −100 / 政府存款 ＋100"}],
+    impact:[["M2","−100","down"],["基础货币","−100","down"],["政府存款","+100","up"]],
+    one:"税收到账那一刻，M2 和基础货币同时下降。这是真正的抽水，不是「钱换了个口袋」——政府存款不叫储备货币。" },
+
+  { id:"e9", num:9, kind:"fiscal", d:"M 1295 150 C 1240 192 1230 232 1230 690 C 1230 726 1176 744 1120 752",
+    badge:[1230,556], labels:[{x:1216,y:620,t:"财政支出（放水）",a:"end"}],
+    title:"财政 → 实体：支出（放水）",
+    flow:["政府存款 −，准备金回流银行","企业/居民存款 ＋"],
+    tacc:[{who:"央行",l:"—",r:"负债 政府存款 −100 / 准备金 ＋100"},
+          {who:"银行",l:"资产 准备金 ＋100",r:"负债 企业存款 ＋100"}],
+    impact:[["M2","+100","up"],["基础货币","+100","up"],["政府存款","−100","down"]],
+    one:"发债本身紧缩、花钱才宽松。这就是为什么化债必须配财政支出——只置换不花钱，等于只抽水不放水。" },
+
+  { id:"e10", num:10, kind:"fiscal", d:"M 1440 170 L 1440 305",
+    badge:[1440,212], labels:[{x:1456,y:256,t:"发债 → 进国库",a:"start"}],
+    title:"财政 → 债市：发债",
+    flow:["一级市场发行，银行或非银认购","发行款进国库 = 政府存款增加"],
+    tacc:[{who:"财政",l:"—",r:"负债 政府债券 ＋100"},
+          {who:"央行",l:"—",r:"负债 政府存款 ＋100（发行款）"}],
+    impact:[["M2","看谁买","flat"],["基础货币","−100","down"]],
+    one:"发行那一刻，准备金离开银行体系、进国库。要等钱花出去才放水——这中间的时滞，就是「财政存款漏损」。" },
+
+  { id:"e11", num:11, kind:"bond", d:"M 1010 385 L 1295 335",
+    badge:[1150,360], labels:[{x:1150,y:314,t:"银行认购 / 二级买卖",a:"middle"}],
+    title:"银行 → 债市：一级认购与二级买卖",
+    flow:["认购政府债：用准备金买，准备金被抽进国库","认购信用债：资产＋债券、负债＋企业存款——和放贷一样创造货币","二级买卖：两边都是既有存款，谁也不创造货币"],
+    tacc:[{who:"银行",l:"资产 债券 ＋100",r:"负债 准备金 −100（买政府债）"},
+          {who:"央行",l:"—",r:"负债 准备金 −100 / 政府存款 ＋100"}],
+    impact:[["政府债 · M2","0","flat"],["政府债 · 基础货币","−100","down"],["信用债 · M2","+100","up"]],
+    one:"同一笔「买债」，买政府债和买信用债的货币含义完全不同：前者抽准备金、M2 不动；后者和放贷一模一样，凭空造出一笔存款。二级市场则只有所有权转移，货币总量不动。"
+     },
+
+  { id:"e12", num:12, kind:"bond", d:"M 1295 372 L 1010 422",
+    badge:[1150,404], labels:[{x:1150,y:430,t:"质押回购：抵押品加杠杆",a:"middle"}],
+    title:"债市 → 银行：质押回购",
+    flow:["拿国债质押融出资金，同一笔券可以被反复质押","一层套一层，杠杆就上去了"],
+    tacc:[{who:"银行",l:"资产 准备金 ＋",r:"负债 回购融入 ＋"}],
+    impact:[["M2","0","flat"],["周转速度","↑","up"]],
+    one:"放大的是周转速度，不是货币存量。这是「货币流通」里最容易被忽略的那一半——M 没变，V 上去了。" },
+
+  { id:"e13", num:13, kind:"bond", d:"M 1370 415 L 1370 545",
+    badge:[1370,480], labels:[{x:1386,y:498,t:"非银认购 / 交易",a:"start"}],
+    title:"债市 → 非银：非银认购",
+    flow:["居民存款 → 非银存款（M2 内部转移）","非银拿这笔钱买债 → 政府存款＋，准备金−"],
+    tacc:[{who:"非银",l:"资产 债券 ＋100",r:"—"},
+          {who:"央行",l:"—",r:"负债 准备金 −100 / 政府存款 ＋100"}],
+    impact:[["M2","−100","down"],["基础货币","−100","down"]],
+    one:"非银买债用的是存量存款，M2 直接少一块。同样是发债，谁买，决定冲击落在 M2 还是准备金上。" },
+
+  { id:"e14", num:14, kind:"shadow", d:"M 1010 452 C 1110 470 1200 530 1295 588",
+    badge:[1092,478], labels:[{x:1140,y:462,t:"同业 / 委外 / 理财对接",a:"start"}],
+    title:"银行 → 非银：委外与同业通道",
+    flow:["银行把资金交给非银：委外、同业理财对接","银行资产从准备金变成对非银债权，M2 不动"],
+    tacc:[{who:"银行",l:"资产 对非银债权 ＋100 / 准备金 −100",r:"—"}],
+    impact:[["M2","0","flat"],["准备金","−100","down"]],
+    one:"钱从表内挪进表外通道，总量没变，但监管看不见了。反过来，非银把钱存回银行时，银行负债就从居民存款变成同业存款：更贵、更不稳、更容易跑——这是 2024 年那轮存款搬家的直接后果。" },
+
+  { id:"e15", num:15, kind:"shadow", d:"M 1440 655 C 1440 702 1330 776 1150 790 C 1140 791 1130 791 1120 790",
+    badge:[1330,762], labels:[{x:1250,y:812,t:"影子银行：信托 / 委托 / 非标",a:"middle"}],
+    title:"非银 → 实体：影子银行放贷",
+    flow:["非银用银行的同业资金放信托贷款、委托贷款","实体的存款增加，但银行表内贷款不动"],
+    tacc:[{who:"非银",l:"资产 信托贷款 ＋100",r:"—"},
+          {who:"实体",l:"资产 存款 ＋100",r:"负债 借款 ＋100"}],
+    impact:[["M2","+100","up"],["准备金","不占用","flat"],["资本","不占用","flat"]],
+    one:"影子银行照样在创造货币：只要最终资金来自银行体系，它就是在创造存款，只是绕开了准备金和资本约束——这正是 2018 年资管新规要堵的口子。"
+     },
+
+  { id:"e16", num:16, kind:"shadow", d:"M 1120 828 C 1206 832 1295 762 1295 672",
+    badge:[1280,735], labels:[{x:1218,y:700,t:"买理财 / 货基（存款搬家）",a:"middle"}],
+    title:"实体 → 非银：存款搬家",
+    flow:["居民存款 → 非银同业存款","两者都还在 M2 里"],
+    tacc:[{who:"居民",l:"—",r:"负债 存款 −100"},
+          {who:"非银",l:"资产 同业存款 ＋100",r:"—"}],
+    impact:[["M2 总量","0","flat"],["M2 结构","变","flat"]],
+    one:"「搬家」主要改的是 M2 的构成和银行负债的稳定性，不是总量——非银同业存款从 2011 年起就计入 M2。只有理财把钱投到债券等非存款资产，M2 才真降。"
+     },
+
+  { id:"e17", num:17, kind:"cross", d:"M 300 170 C 392 282 502 342 650 380",
+    badge:[468,292], labels:[{x:392,y:250,t:"出口收汇（结汇）",a:"end"}],
+    title:"境外 → 银行：出口收汇与结汇",
+    flow:["企业把外汇卖给银行，银行给它记一笔人民币存款","这一次的资产是外汇，不是贷款"],
+    tacc:[{who:"银行",l:"资产 外汇 ＋100",r:"负债 企业存款 ＋100"}],
+    impact:[["M2","+100","up"]],
+    one:"这是「资产是外汇」而不是「资产是贷款」的货币创造。所以外汇大幅流入会同时推高 M2 和基础货币——这就是 2005–2014 年的故事。" }
+];
+
+/* ============================ 状态 ============================ */
+let focusId = null, pinned = null, currentKind = "all";
+let demo = { running:false, timer:null, i:0 };
+
+const svg = document.getElementById("canvas");
+const panel = document.getElementById("panel");
+
+/* ============================ 工具 ============================ */
+function el(tag, attrs, kids){
+  const n = document.createElementNS(SVGNS, tag);
+  if (attrs) for (const k in attrs) if (attrs[k] !== undefined && attrs[k] !== null) n.setAttribute(k, attrs[k]);
+  if (kids) kids.forEach(c => c && n.appendChild(c));
+  return n;
+}
+function txt(x, y, str, cls, anchor){
+  const t = el("text", {x, y, class:cls});
+  if (anchor) t.setAttribute("text-anchor", anchor);
+  t.textContent = str;
+  return t;
+}
+const $ = id => document.getElementById(id);
+
+/* ============================ 构建 SVG ============================ */
+function buildDefs(){
+  const defs = el("defs");
+  Object.keys(C).forEach(k => {
+    const m = el("marker", {
+      id:"arw-"+k, viewBox:"0 0 10 10", refX:"8.6", refY:"5",
+      markerWidth:"7", markerHeight:"7", orient:"auto-start-reverse"
+    });
+    m.appendChild(el("path", {d:"M0,0.6 L10,5 L0,9.4 z", fill:C[k]}));
+    defs.appendChild(m);
+  });
+  const glow = el("filter", {id:"soft", x:"-40%", y:"-40%", width:"180%", height:"180%"});
+  glow.appendChild(el("feGaussianBlur", {stdDeviation:"6", result:"b"}));
+  const mg = el("feMerge");
+  mg.appendChild(el("feMergeNode", {in:"b"}));
+  mg.appendChild(el("feMergeNode", {in:"SourceGraphic"}));
+  glow.appendChild(mg);
+  defs.appendChild(glow);
+  svg.appendChild(defs);
+}
+
+function buildGrid(){
+  const g = el("g", {opacity:".5"});
+  const pat = el("pattern", {id:"dots", width:"34", height:"34", patternUnits:"userSpaceOnUse"});
+  pat.appendChild(el("circle", {cx:"1.2", cy:"1.2", r:"1.1", fill:"rgba(255,255,255,.055)"}));
+  const defs = svg.querySelector("defs");
+  defs.appendChild(pat);
+  g.appendChild(el("rect", {x:0, y:0, width:1760, height:980, fill:"url(#dots)"}));
+  svg.appendChild(g);
+}
+
+function buildAnnotation(){
+  const g = el("g", {transform:"translate(100,724)"});
+  g.appendChild(el("rect", {
+    width:280, height:132, rx:14, fill:"rgba(77,141,255,.045)",
+    stroke:"rgba(77,141,255,.22)", "stroke-dasharray":"5 5"
+  }));
+  g.appendChild(txt(18, 30, "货币乘数", "n-sub"));
+  g.appendChild(txt(18, 58, "m = (1+c) / (rr + e + c)", "n-sub2"));
+  g.appendChild(txt(18, 82, "c 现金比 · rr 法定 · e 超额", "n-sub2"));
+  g.appendChild(txt(18, 110, "降准降的是分母，不是分子", "n-sub2"));
+  svg.appendChild(g);
+}
+
+function buildEdges(){
+  const gEdges = el("g", {id:"edges"});
+  EDGES.forEach(e => {
+    const g = el("g", {class:"edge", "data-id":e.id, "data-kind":e.kind});
+    g.appendChild(el("path", {class:"halo", d:e.d}));
+    const line = el("path", {class:"line", d:e.d});
+    if (!e.noHead) line.setAttribute("marker-end", "url(#arw-" + e.kind + ")");
+    if (e.dash) line.setAttribute("stroke-dasharray", "7 6");
+    g.appendChild(line);
+    gEdges.appendChild(g);
+  });
+  svg.appendChild(gEdges);
+
+  const gLabels = el("g", {id:"labels"});
+  EDGES.forEach(e => {
+    const g = el("g", {"data-id":e.id, "data-kind":e.kind});
+    (e.labels || []).forEach(l => {
+      g.appendChild(txt(l.x, l.y, l.t, "elabel", l.a));
+    });
+    gLabels.appendChild(g);
+  });
+  svg.appendChild(gLabels);
+}
+
+/* ---------- 工具卡片（直接画在图上） ---------- */
+function buildToolbox(){
+  const W = 310, H = 392;
+  const g = el("g", {class:"tbox", transform:"translate(92,316)"});
+  g.appendChild(el("rect", {class:"tbg", width:W, height:H, rx:14,
+    fill:"rgba(77,141,255,.05)", stroke:"rgba(77,141,255,.28)", "stroke-dasharray":"5 5"}));
+  g.appendChild(txt(16, 28, "② 央行投放工具箱", "tbox-t"));
+  g.appendChild(txt(16, 48, "同样叫「投放」，六件工具差别极大", "tbox-s"));
+  TOOLS.forEach((t, i) => {
+    const y = 74 + i * 43;
+    g.appendChild(el("rect", {x:16, y:y - 1, width:3, height:31, rx:1.5, fill:C[t.kind], opacity:".85"}));
+    const nm = txt(26, y + 11, t.name, "tbox-n");
+    nm.setAttribute("fill", C[t.kind]);
+    g.appendChild(nm);
+    g.appendChild(txt(W - 16, y + 11, t.tag, "tbox-g", "end"));
+    g.appendChild(txt(26, y + 28, t.short, "tbox-r"));
+  });
+  g.appendChild(el("rect", {x:16, y:330, width:W - 32, height:1, fill:"rgba(255,255,255,.14)"}));
+  g.appendChild(txt(16, 348, "价格型只有逆回购；降准只调乘数，不投放", "tbox-r"));
+  g.appendChild(txt(16, 364, "质押＝券押在央行；买断＝卖给央行，能再用", "tbox-r"));
+  const lk = txt(W - 16, 384, "点开看对比 →", "tbox-g", "end");
+  lk.setAttribute("fill", "#9dc0ff");
+  g.appendChild(lk);
+  g.addEventListener("click", ev => { ev.stopPropagation(); showTools(); });
+  svg.appendChild(g);
+}
+
+function showHistory(){
+  pinned = "hist";
+  clearFocus();
+  const eras = ERAS.map((e, i) =>
+    '<div class="era">' +
+      '<div class="era-n">' + (i + 1) + '</div>' +
+      '<div class="era-b">' +
+        '<div class="era-y">' + e.y + '</div>' +
+        '<div class="era-t">' + e.n + '</div>' +
+        '<div class="era-m">' + e.m + '</div>' +
+        '<div class="era-k">' + e.k.map(x => '<span>' + x + '</span>').join("") + '</div>' +
+        (e.w ? '<div class="era-w">换挡原因：' + e.w + '</div>' : '') +
+      '</div>' +
+    '</div>'
+  ).join("");
+  const bars = SURPLUS.map(p => {
+    const h = (p[1] / 5939 * 86).toFixed(1);
+    return '<div class="bc-r"><b class="bc-b" style="height:' + h + '%"></b><em>' + String(p[0]).slice(2) + '</em></div>';
+  }).join("");
+  panel.innerHTML =
+    '<button class="backbtn" id="backBtn">← 回到导读</button>' +
+    '<div class="pcard"><h3>基础货币的五个时代</h3>' +
+      '<p>央行投放基础货币的方式，三十多年里换了四次主轴：<b style="color:#e8eefc">再贷款 → 外汇占款 → 主动工具 → 结构性工具</b>。</p>' +
+      '<p>每一次换挡都不是设计出来的，是被上一套机制的副作用逼出来的：外储不够了换一次，被动投放太多通胀了换一次，外汇流出了再换一次。</p></div>' +
+    '<div class="pcard"><h3>一条主轴，四次换挡</h3>' + eras + '</div>' +
+    '<div class="pcard"><h3>转折点：2014 年 5 月</h3>' +
+      '<p>央行口径外汇占款站上 <b style="color:#e8eefc">27.3 万亿元</b>，但当月新增只有 <b style="color:#e8eefc">3.61 亿元</b>——环比骤降 99.57%。</p>' +
+      '<p>同月贸易顺差约 360 亿美元。<b style="color:#e8eefc">顺差还在，外汇占款却几乎零增长</b>——这个背离本身就说明：钱在往外走，而不只是没进来。</p>' +
+      '<p>之后：2015 年 −2.21 万亿，2016 年 −2.91 万亿，2017 年 2 月降到 21.7 万亿，累计 −5.6 万亿。</p>' +
+      '<p>接棒的是主动工具：2016 年末对其他存款性公司债权同比暴增 218%，其中 MLF 余额一年增长 4.19 倍。</p></div>' +
+    '<div class="pcard"><h3>顺差还在，管子却堵了</h3>' +
+      '<div class="barchart">' + bars + '</div>' +
+      '<p style="font-size:10.5px;color:var(--mut2)">2002–2015 年贸易顺差（亿美元）。2015 年 5939 亿是本段峰值，而同年外汇占款却在大幅下降。</p>' +
+      '<p>同期人民币平均汇率：8.28（2002–2004）→ 6.95（2008）→ 6.14（2014）→ 6.23（2015）。顺差与升值并行，但顺差不再自动变成外汇占款——因为企业和居民开始自己持汇，不再全部结给央行。</p></div>' +
+    '<div class="pcard"><h3>为什么没重演 1997 年的泰国</h3>' +
+      '<table class="dtab"><tr><th></th><th>泰国 1996</th><th>中国 2015</th></tr>' +
+      '<tr><td><b>资本项目</b></td><td>基本放开</td><td>关键部分未可兑换，留着一道闸门</td></tr>' +
+      '<tr><td><b>汇率</b></td><td>钉住美元</td><td>有管理浮动，可贬值</td></tr>' +
+      '<tr><td><b>短期外债<br>／外储</b></td><td>超过 100%</td><td>28%</td></tr>' +
+      '<tr><td><b>工具</b></td><td>几乎只有加息</td><td>宏观审慎＋真实性审核＋20% 外汇风险准备金</td></tr>' +
+      '<tr><td><b>结果</b></td><td>外储耗尽，放弃钉住，危机爆发</td><td>外储 3.3 万亿，冲击被吸收</td></tr></table>' +
+      '<p>泰国是门全开、又没外汇缓冲，被短期资本集中冲垮；中国是门没全开、手里有外汇，面对的是一场流速可控的退潮。</p></div>';
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+}
+function showTools(){
+  pinned = "tools";
+  clearFocus();
+  const ladder = TOOLS.map(t =>
+    '<div class="lad-row"><span class="lad-k">' + t.name + '</span><div class="track"><i style="left:' +
+    t.bar[0] + '%;width:' + (t.bar[1] - t.bar[0]) + '%;background:' + C[t.kind] + '"></i></div></div>'
+  ).join("");
+  const list = TOOLS.map(t =>
+    '<div class="tool" style="border-color:' + C[t.kind] + '">' +
+      '<div class="tool-h"><b>' + t.name + '</b><span>' + t.tag + '</span></div>' +
+      '<div class="tool-dl">' +
+        '<div><i>期限</i><span>' + t.tenor + '</span></div>' +
+        '<div><i>对象</i><span>' + t.obj + '</span></div>' +
+        '<div><i>方式</i><span>' + t.way + '</span></div>' +
+        '<div><i>定价</i><span>' + t.price + '</span></div>' +
+      '</div>' +
+      '<div class="tool-r">' + t.role + '</div>' +
+    '</div>'
+  ).join("");
+  const chain = RATE_CHAIN.map(c =>
+    (c.ar ? '<div class="ch-ar">' + c.ar + '</div>' : '') +
+    '<div class="ch"><div class="ch-h"><b>' + c.k + '</b><span>' + c.n + '</span></div>' +
+    '<div class="ch-d">' + c.d + '</div></div>'
+  ).join("");
+  const cpHTML = COUNTERPARTIES.map(c =>
+    '<div class="cp"><div class="cp-h"><b>' + c.key + '</b><span>' + c.sub + '</span></div>' +
+    '<div class="cp-d">' + c.d + '</div>' +
+    c.rows.map(r => '<div class="cp-r"><i>' + r[0] + '</i><span>' + r[1] + '</span></div>').join("") +
+    '</div>'
+  ).join("");
+  const auHTML = AUCTION.map(a => '<div class="au"><b>' + a.k + '</b><p>' + a.d + '</p></div>').join("");
+  panel.innerHTML =
+    '<button class="backbtn" id="backBtn">← 回到导读</button>' +
+    '<div class="pcard"><h3><span class="n" style="background:' + C.base + '">②</span>央行的投放工具箱</h3>' +
+      '<p>「央行投放基础货币」是一句被压缩得太狠的话。真实操作是六件工具，它们在<b style="color:#e8eefc">期限、对象、方式、定价</b>四个维度上各不相同——而这些差别，决定了同一笔钱会不会变成实体的支出。</p></div>' +
+    '<div class="pcard"><h3>期限谱</h3><div class="lad">' + ladder + '</div>' +
+      '<div class="lad-ax"><span>隔夜</span><span>7天</span><span>3月</span><span>1年</span><span>3年</span><span>5年+</span></div>' + '<p style="font-size:11px;color:var(--mut2);margin-top:7px">bp＝基点，1 个基点＝0.01%。</p></div>' +
+    '<div class="pcard"><h3>谁能跟央行做交易</h3>' +
+      '<p style="color:var(--mut);font-size:12px">三个圈层，越往下越窄。看一件工具的对象，就知道这条水管接在谁身上。</p>' +
+      cpHTML + '</div>' +
+    '<div class="pcard"><h3>招标是怎么回事</h3>' +
+      auHTML +
+      '<p style="color:var(--mut2);font-size:11.5px;line-height:1.75;margin-top:10px">所以「价格由招标决定，不是政策利率」＝ 这一次借钱的利率，是那几十家机构当场报出来的，每次都可能不一样。央行没有把它当成政策基准来宣布，它也就不该被当成政策利率来读。</p></div>' +
+    '<div class="pcard"><h3>逐个体检</h3>' + list + '</div>' +
+    '<div class="pcard"><h3>利率是怎么传到你的</h3>' + '<p style="color:var(--mut);font-size:12px">政策利率不是直接改你的月供，它要沿着下面这条链一站一站往下走。每一站都有自己的名字，也都加了一层价。</p>' + '<div class="chain">' + chain + '</div>' + '<p style="color:var(--mut2);font-size:11.5px;line-height:1.75;margin-top:10px">每一跳都在衰减：政策利率降 10bp，DR007 基本跟着走，LPR 常常只降 5bp，实际贷款利率可能只降 3bp。链条越长，央行的手伸得越短——这也是「宽货币、紧信用」这个词的由来。</p></div>' +
+    '<div class="pcard"><h3>三个岔路口</h3>' +
+      '<p><b style="color:#e8eefc">① 价格 vs 数量。</b>只有 7 天逆回购是价格型（它就是政策利率）；买断式、MLF、PSL、再贷款都是数量型，价格由招标或央行指定。</p>' +
+      '<p><b style="color:#e8eefc">② 质押 vs 买断。</b>质押是券押在央行、所有权还在银行但被冻结；买断是所有权转移，银行真的把券卖掉了——所以买断式能盘活资产、能跨年。</p>' +
+      '<p><b style="color:#e8eefc">③ 主动 vs 看申请。</b>逆回购和买断式是央行每天主动出价；PSL 与再贷款是银行/政策行申请、央行批额度，<b style="color:#e8eefc">额度给了也不一定用出去</b>。</p></div>' +
+    '<div class="pcard" style="border-color:rgba(77,141,255,.3);background:rgba(77,141,255,.06)">' +
+      '<h3>为什么这六个的差别重要</h3>' +
+      '<p>同样是「投放 1000 亿」：用 7 天逆回购，银行知道下周就到期，不敢拿去放三年期贷款，钱大概率停在银行间；用 PSL，是 5 年期、直接进政策性银行、直接进工地。</p>' +
+      '<p><b style="color:#e8eefc">工具的期限和对象，决定了这笔钱的「含水量」。</b>这也是为什么央行一边总量宽松、一边反复强调「结构性工具」——它想绕开银行的谨慎，把钱直接怼到某个领域。</p></div>';
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+}
+function buildNodes(){
+  const g = el("g", {id:"nodes"});
+  NODES.forEach(n => {
+    const g = el("g", {class:"node", "data-id":n.id, transform:`translate(${n.x - n.w/2},${n.y - n.h/2})`});
+    g.appendChild(el("rect", {class:"card", width:n.w, height:n.h, rx:18}));
+    g.appendChild(el("rect", {
+      class:"bar", x:22, y:20, width:38, height:4, rx:2, fill:C[n.tone]
+    }));
+    const ty = n.h >= 120 ? 54 : 48;
+    g.appendChild(txt(22, ty, n.title, "n-title"));
+    g.appendChild(txt(22, ty + 24, n.sub, "n-sub"));
+    g.appendChild(txt(22, ty + 43, n.sub2, "n-sub2"));
+    if (n.id === "real"){
+      g.appendChild(el("rect", {x:348, y:44, width:210, height:84, rx:12,
+        fill:"rgba(255,255,255,.035)", stroke:"rgba(255,255,255,.16)", "stroke-dasharray":"5 4"}));
+      g.appendChild(txt(364, 70, "商业信用闭环", "n-sub2"));
+      g.appendChild(txt(364, 92, "商票·应收账款·供应链票据", "n-sub2"));
+      g.appendChild(txt(364, 114, "不在 M2 里的私人货币", "n-sub2"));
+    }
+    // 左侧色条（发光）
+    g.appendChild(el("rect", {
+      x:-1, y:20, width:3, height:n.h - 40, rx:2, fill:C[n.tone], opacity:".55"
+    }));
+    g.addEventListener("mouseenter", () => { if (!pinned) setFocus(null, n.id); });
+    g.addEventListener("mouseleave", () => { if (!pinned) setFocus(null, null); });
+    g.addEventListener("click", ev => { ev.stopPropagation(); showNode(n); });
+    gNodes.appendChild(g);
+  });
+  svg.appendChild(gNodes);
+}
+let gNodes;
+
+function buildBadges(){
+  const g = el("g", {id:"badges"});
+  EDGES.forEach(e => {
+    const bg = el("g", {class:"badge", "data-id":e.id, "data-kind":e.kind});
+    bg.appendChild(el("circle", {cx:e.badge[0], cy:e.badge[1], r:11, fill:C[e.kind], opacity:".92"}));
+    bg.appendChild(el("circle", {
+      cx:e.badge[0], cy:e.badge[1], r:11, fill:"none",
+      stroke:"#070b14", "stroke-width":"2"
+    }));
+    const t = el("text", {x:e.badge[0], y:e.badge[1]});
+    t.textContent = e.num;
+    bg.appendChild(t);
+    g.appendChild(bg);
+  });
+  svg.appendChild(g);
+}
+
+function hexToRgb(h){
+  const n = parseInt(h.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/* ============================ 交互：聚焦 ============================ */
+function setFocus(edgeId, nodeId){
+  focusId = edgeId || nodeId || null;
+  const keep = new Set();
+  if (edgeId) keep.add(edgeId);
+  else if (nodeId) (NODE_EDGES[nodeId] || []).forEach(id => keep.add(id));
+
+  svg.querySelectorAll("[data-id]").forEach(n => {
+    const isNode = n.classList.contains("node");
+    if (!focusId){
+      n.classList.remove("dimmed", "dim", "on");
+      return;
+    }
+    const id = n.getAttribute("data-id");
+    if (isNode){
+      n.classList.remove("dimmed");
+      n.classList.toggle("dim", !!edgeId);
+    } else {
+      n.classList.toggle("dimmed", !keep.has(id));
+      n.classList.toggle("on", !!edgeId && keep.has(id));
+    }
+  });
+  svg.querySelectorAll(".node").forEach(n => {
+    n.classList.toggle("focus", !!nodeId && n.getAttribute("data-id") === nodeId);
+  });
+}
+
+function clearFocus(){
+  pinned = null;
+  focusId = null;
+  svg.querySelectorAll("[data-id]").forEach(n => n.classList.remove("dimmed", "dim", "on"));
+  svg.querySelectorAll(".node").forEach(n => n.classList.remove("focus"));
+}
+
+/* ============================ 侧栏 ============================ */
+function panelHome(){
+  panel.innerHTML = `
+    <div class="pcard">
+      <h3>怎么读这张图</h3>
+      <p><b style="color:#e8eefc">颜色＝机制</b>，<b style="color:#e8eefc">圆圈数字＝记账动作的序号</b>。悬停任一箭头会点亮它、压暗其余；点一下钉住，右侧显示这笔操作的完整分录。</p>
+      <p>箭头多的图看似糊成一团，实际上任何时刻你只需要看一根：先点数字，再读分录，最后看它对 <span class="kbd">M2</span> 和 <span class="kbd">基础货币</span> 各做了什么。</p>
+      <p>左侧那块虚线卡片是 <b style="color:#e8eefc">② 的展开</b>：央行投放基础货币的六件工具，每件都标了期限、方式和用途。点开能看到期限谱和逐项对比。</p>
+    </div>
+    <div class="pcard">
+      <h3>六条通道</h3>
+      <div class="legend">
+        <div class="lg"><i style="border-color:${C.base}"></i>基础货币：央行 ↔ 银行</div>
+        <div class="lg"><i style="border-color:${C.create}"></i>货币创造：银行 ↔ 实体</div>
+        <div class="lg"><i style="border-color:${C.fiscal}"></i>财政：抽水与放水</div>
+        <div class="lg"><i style="border-color:${C.bond}"></i>债市：融资 / 抵押品 / 定价</div>
+        <div class="lg"><i style="border-color:${C.shadow}"></i>非银与影子银行</div>
+        <div class="lg"><i style="border-color:${C.cross}"></i>跨境与外汇占款</div>
+        <div class="lg dash"><i style="border-color:${C.cross}"></i>虚线＝回笼 / 账户 / 反向流</div>
+      </div>
+    </div>
+    <div class="pcard">
+      <h3>三句话</h3>
+      <p>① 货币是贷款造出来的，还本时被消灭——存量是记账的结果，不是印钞的结果。</p>
+      <p>② 发债抽水、支出放水。财政是央行之外最大的水位调节器。</p>
+      <p>③ M2 高而 CPI 低，问题不在创造太多，在周转太慢：钱进了资产、进了利息、进了预防性储蓄、进了国库。</p>
+    </div>
+    <div class="pcard">
+      <h3>想先看历史？</h3>
+      <p>这张图画的是「机制现在长什么样」。它是一路换挡换出来的：再贷款 → 外汇占款 → 主动工具 → 结构性工具，每一次都是被上一套的副作用逼出来的。</p>
+      <button class="btn" id="histBtn3" style="width:100%">看基础货币的五个时代 →</button>
+    </div>
+`;
+  const h3 = $("histBtn3"); if (h3) h3.onclick = () => showHistory();
+}
+
+function impactHTML(list){
+  return `<div class="impacts">${list.map(([k,v,s]) =>
+    `<span class="imp ${s}">${k} ${v}</span>`).join("")}</div>`;
+}
+function taccHTML(rows){
+  return `<table class="tacc">
+    <tr><th>主体</th><th>资产</th><th>负债</th></tr>
+    ${rows.map(r => `<tr><td>${r.who}</td><td>${colorize(r.l)}</td><td>${colorize(r.r)}</td></tr>`).join("")}
+  </table>`;
+}
+function colorize(s){
+  if (!s) return "—";
+  return s.replace(/(＋\s*\d+|＋)/g, '<span class="pos">$1</span>')
+          .replace(/(−\s*\d+|−)/g, '<span class="neg">$1</span>');
+}
+
+function showEdge(e){
+  pinned = e.id;
+  setFocus(e.id, null);
+  const labels = e.labels.map(l => l.t).join(" · ");
+  panel.innerHTML = `
+    <button class="backbtn" id="backBtn">← 回到导读</button>
+    <div class="pcard">
+      <h3><span class="n" style="background:${C[e.kind]}">${e.num}</span>${e.title}</h3>
+      ${(e.flow || []).map(f => `<div class="flowline" style="color:${C[e.kind]}">${f}</div>`).join("")}
+      ${taccHTML(e.tacc)}
+      ${impactHTML(e.impact)}
+      <div class="one">${e.one}</div>
+      ${e.id === "e2" ? `<button class="btn" id="toolBtn" style="margin-top:12px;width:100%">展开六个工具 →</button>` : ""}
+      ${e.id === "e1" ? `<button class="btn" id="histBtn" style="margin-top:12px;width:100%">看基础货币的五个时代 →</button>` : ""}
+    </div>${e.deep ? `<div class="pcard"><h3>这条管子是怎么接上的</h3>${e.deep.map(p => `<div class="deep-p">${p}</div>`).join("")}</div>` : ""}`;
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+  const tb = $("toolBtn"); if (tb) tb.onclick = () => showTools();
+  const hb = $("histBtn"); if (hb) hb.onclick = () => showHistory();
+}
+
+function showNode(n){
+  pinned = n.id;
+  setFocus(null, n.id);
+  panel.innerHTML = `
+    <button class="backbtn" id="backBtn">← 回到导读</button>
+    <div class="pcard">
+      <h3><span class="n" style="background:${C[n.tone]}">·</span>${n.title}</h3>
+      <p style="color:${C[n.tone]};font-size:12.5px;margin-bottom:10px">${n.sub} · ${n.sub2}</p>
+      ${n.role.map(r => `<p>${r}</p>`).join("")}
+      ${n.id === "pbc" ? `<button class="btn" id="histBtn2" style="margin-top:12px;width:100%">看基础货币的五个时代 →</button>` : ""}
+    </div>
+    ${n.deep ? n.deep.map(d => `<div class="pcard"><h3>${d.h}</h3>${d.b.map(x => `<div class="deep-p">${x}</div>`).join("")}</div>`).join("") : ""}
+    <div class="pcard">
+      <h3>连到它的箭头</h3>
+      ${EDGES.filter(e => NODE_EDGES[n.id] && NODE_EDGES[n.id].includes(e.id)).map(e =>
+        `<div class="flowline" style="color:${C[e.kind]};cursor:pointer" data-goto="${e.id}">
+           <b style="color:#e8eefc">${e.num}</b>　${e.title}</div>`).join("")}
+    </div>`;
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+  const h2 = $("histBtn2"); if (h2) h2.onclick = () => showHistory();
+  panel.querySelectorAll("[data-goto]").forEach(x => x.onclick = () => showEdge(EDGES.find(e => e.id === x.dataset.goto)));
+}
+
+/* 节点与箭头的映射 */
+const NODE_EDGES = {
+  pbc:["e1","e2","e3","e4"],
+  bank:["e2","e3","e5","e6","e7","e11","e12","e14","e17"],
+  mof:["e4","e8","e9","e10"],
+  mkt:["e10","e11","e12","e13"],
+  nbfi:["e13","e14","e15","e16"],
+  real:["e5","e6","e7","e8","e9","e15","e16","e17"],
+  off:["e1","e17"]
+};
+const NODE_LINKS = NODE_EDGES;
+
+/* ============================ 底部模拟器 ============================ */
+const BASE = {M2:300000, B:38000};
+let acc = {M2:0, B:0, R:0, G:0, L:0, S:0};
+const META = [
+  {k:"M2", label:"Δ M2", unit:"亿"},
+  {k:"B",  label:"Δ 基础货币", unit:"亿"},
+  {k:"R",  label:"Δ 准备金", unit:"亿"},
+  {k:"G",  label:"Δ 政府存款", unit:"亿"},
+  {k:"L",  label:"Δ 银行贷款", unit:"亿"},
+  {k:"S",  label:"Δ 银行持债", unit:"亿"}
+];
+
+const OPS = [
+  { id:"o1", label:"逆回购 +1000", tone:"up",   edge:"e2", d:{B:1000, R:1000},
+    note:"投放准备金。钱停在银行间市场，M2 还不动。" },
+  { id:"o2", label:"到期回笼 −1000", tone:"down", edge:"e3", d:{B:-1000, R:-1000},
+    note:"抽回准备金。可贷空间收窄，但 M2 还没变。" },
+  { id:"o3", label:"降准 0.5pct", tone:"flat", edge:"e2", d:{},
+    note:"基础货币不变、M2 不变：法定准备金转成超额准备金，动的是乘数分母，不是基数。" },
+  { id:"o4", label:"放贷 +1000", tone:"up",   edge:"e5", d:{M2:1000, L:1000},
+    note:"贷款创造存款。M2 上升，基础货币不动。" },
+  { id:"o5", label:"还本 −1000", tone:"down", edge:"e6", d:{M2:-1000, L:-1000},
+    note:"贷款与存款同时注销 —— 货币被消灭。" },
+  { id:"o6", label:"收税 +1000", tone:"down", edge:"e8", d:{M2:-1000, B:-1000, R:-1000, G:1000},
+    note:"M2 与基础货币同时下降。真正的抽水。" },
+  { id:"o7", label:"财政支出 +1000", tone:"up", edge:"e9", d:{M2:1000, B:1000, R:1000, G:-1000},
+    note:"政府存款变企业存款，准备金回流。真正的放水。" },
+  { id:"o8", label:"银行买国债 +1000", tone:"flat", edge:"e11", d:{B:-1000, R:-1000, G:1000, S:1000},
+    note:"M2 不变，准备金被抽进国库。发债本身是紧缩的。" },
+  { id:"o9", label:"非银买国债 +1000", tone:"down", edge:"e13", d:{M2:-1000, B:-1000, R:-1000, G:1000},
+    note:"用的是存量存款，M2 直接少一块。" },
+  { id:"o10", label:"化债置换 1000", tone:"flat", edge:"e11", d:{L:-1000, S:1000},
+    note:"三段记账：政府发置换债（抽准备金）→ 拨给城投（放回）→ 城投还贷（注销贷款和存款）。净结果 M2 不变、基础货币不变，只有银行资产从贷款换成债券。真正的收缩不在存量，而在「不能再新增隐性债务」这条流量约束上。" },
+  { id:"o11", label:"影子银行放贷 +1000", tone:"up", edge:"e15", d:{M2:1000},
+    note:"M2 上升，但不占银行表内贷款额度、不缴准备金。绕开了闸门。" },
+  { id:"o12", label:"外汇占款 +1000", tone:"up", edge:"e1", d:{M2:1000, B:1000, R:1000},
+    note:"M2 与基础货币同时上升 —— 2005–2014 年的主旋律。" },
+  { id:"o13", label:"存款搬家 1000", tone:"flat", edge:"e16", d:{},
+    note:"M2 总量不变（非银存款也在 M2 里），变的是结构：居民存款 → 同业存款，银行负债更不稳。" }
+];
+
+function buildOps(){
+  const box = $("ops");
+  box.innerHTML = "";
+  OPS.forEach(o => {
+    const b = document.createElement("button");
+    b.className = "op";
+    b.dataset.tone = o.tone;
+    b.dataset.id = o.id;
+    b.textContent = o.label;
+    b.onclick = () => applyOp(o);
+    box.appendChild(b);
+  });
+}
+
+function buildMetrics(){
+  const box = $("metrics");
+  box.innerHTML = META.map(m =>
+    `<div class="m"><div class="k">${m.label}</div><div class="v zero" id="mv-${m.k}">0</div></div>`
+  ).join("") + `<div class="m"><div class="k">货币乘数 M2/B</div><div class="v" id="mv-MUL">7.89</div></div>`;
+}
+
+function fmt(v){
+  if (v === 0) return "0";
+  const s = Math.abs(v).toLocaleString("en-US");
+  return (v > 0 ? "+" : "−") + s;
+}
+function refreshMetrics(){
+  META.forEach(m => {
+    const n = $("mv-" + m.k);
+    const v = acc[m.k];
+    n.textContent = fmt(v);
+    n.className = "v " + (v > 0 ? "up" : v < 0 ? "down" : "zero");
+  });
+  const m2 = BASE.M2 + acc.M2, b = BASE.B + acc.B;
+  const mul = b > 0 ? (m2 / b) : 0;
+  const el2 = $("mv-MUL");
+  el2.textContent = mul.toFixed(2);
+  el2.className = "v " + (mul > 7.895 ? "up" : mul < 7.885 ? "down" : "");
+}
+
+function flashEdge(id){
+  const g = svg.querySelector(`.edge[data-id="${id}"]`);
+  if (!g) return;
+  g.classList.add("on");
+  setTimeout(() => g.classList.remove("on"), 1600);
+}
+
+function applyOp(o){
+  Object.keys(acc).forEach(k => { acc[k] += (o.d[k] || 0); });
+  refreshMetrics();
+  flashEdge(o.edge);
+  const e = EDGES.find(x => x.id === o.edge) || EDGES[0];
+  panel.innerHTML = `
+    <button class="backbtn" id="backBtn">← 回到导读</button>
+    <div class="pcard">
+      <h3><span class="n" style="background:${C[e.kind]}">${o.tone === "down" ? "−" : o.tone === "up" ? "＋" : "·"}</span>${o.label}</h3>
+      <div class="flowline" style="color:${C[e.kind]}">${e.title}</div>
+      <div class="impacts">
+        ${Object.keys(o.d).map(k => {
+          const v = o.d[k];
+          const label = {M2:"M2",B:"基础货币",R:"准备金",G:"政府存款",L:"银行贷款",S:"银行持债"}[k];
+          return `<span class="imp ${v>0?"up":"down"}">${label} ${fmt(v)}</span>`;
+        }).join("") || `<span class="imp flat">总量指标不变</span>`}
+      </div>
+      <div class="one">${o.note}</div>
+    </div>`;
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+  $("lastop").innerHTML = `最近一步：<b>${o.label}</b> · M2 ${fmt(o.d.M2 || 0)} · 基础货币 ${fmt(o.d.B || 0)}`;
+}
+
+/* ============================ 房贷演示 ============================ */
+const DEMO = [
+  { edge:"e2", text:"央行逆回购，投放 1 亿元准备金给 A 银行。<b>水进了银行间市场</b>，还没到实体。" },
+  { edge:"e5", text:"居民甲申请 500 万房贷。银行记账：资产＋500 万贷款，负债＋500 万存款。<b>货币在这一瞬间被创造。</b>" },
+  { node:"bank", text:"甲把钱付给开发商乙，A 银行的准备金划给 B 银行。<b>货币在体系内转移，总量不变。</b>" },
+  { node:"real", text:"乙付工程款给建筑商丙、发工资给工人丁。<b>钱沿产业链继续转手</b>，每转一次都在不同银行间划准备金。" },
+  { edge:"e16", text:"丙、丁把钱存起来或买理财。<b>存款搬家，M2 结构变了，总量未必变。</b>" },
+  { edge:"e6", text:"甲每月还本付息。还本同时注销一笔贷款和一笔存款——<b>货币被消灭。</b>" },
+  { edge:"e8", text:"政府向乙收土地增值税，钱进国库——<b>抽水</b>；再把专项资金拨下去修路——<b>放水</b>。" }
+];
+
+let demoBox = null;
+function startDemo(){
+  stopDemo();
+  demo.running = true;
+  demo.i = 0;
+  if (!demoBox){
+    demoBox = document.createElement("div");
+    demoBox.className = "lastop";
+    demoBox.style.cssText = "margin-top:8px;padding:9px 12px;border:1px solid rgba(77,141,255,.3);border-radius:9px;background:rgba(77,141,255,.07);color:#dfe8f7;font-size:12.5px;line-height:1.7";
+    $("lastop").replaceWith(demoBox);
+    demoBox.id = "lastop";
+  }
+  $("demoBtn").textContent = "⏹ 停止演示";
+  stepDemo();
+  demo.timer = setInterval(stepDemo, 2600);
+}
+function stepDemo(){
+  if (demo.i >= DEMO.length){ stopDemo(); return; }
+  const s = DEMO[demo.i];
+  clearFocus();
+  if (s.edge){
+    const g = svg.querySelector(`.edge[data-id="${s.edge}"]`);
+    if (g) g.classList.add("on");
+    setFocus(s.edge, null);
+    // 去掉自加的 on 类冲突
+    if (g) g.classList.add("on");
+  } else if (s.node){
+    const g = svg.querySelector(`.node[data-id="${s.node}"]`);
+    if (g) g.classList.add("focus");
+  }
+  demoBox.innerHTML = `<span style="color:${C.base};font-weight:700">第 ${demo.i+1}/${DEMO.length} 步</span>　${s.text}`;
+  demo.i++;
+}
+function stopDemo(){
+  if (demo.timer) clearInterval(demo.timer);
+  demo.timer = null;
+  demo.running = false;
+  $("demoBtn").textContent = "▶ 房贷走完全程";
+  clearFocus();
+}
+
+/* ============================ 筛选 ============================ */
+const CHIPS = [
+  {k:"all",   t:"全部"},
+  {k:"base",  t:"基础货币"},
+  {k:"create",t:"货币创造"},
+  {k:"fiscal",t:"财政"},
+  {k:"bond",  t:"债市"},
+  {k:"shadow",t:"非银·影子"},
+  {k:"cross", t:"跨境"}
+];
+function buildChips(){
+  const box = $("chips");
+  CHIPS.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "chip" + (c.k === "all" ? " on" : "");
+    b.dataset.k = c.k;
+    b.innerHTML = (c.k !== "all" ? `<span class="dot" style="background:${C[c.k]}"></span>` : "") + c.t;
+    b.onclick = () => applyFilter(c.k);
+    box.appendChild(b);
+  });
+}
+const FILTER_NOTE = {
+  base:"基础货币这一层只和银行打交道。钱在这里只决定「有没有水」，还不决定「水去哪」。",
+  create:"货币创造发生在银行和实体之间：放贷记出一笔存款，还本注销一笔存款。",
+  fiscal:"财政是第二个水位调节器：收税与发债抽水，支出放水。看「支出进度」，不看发行规模。",
+  bond:"债市同时干三件事：融资、抵押品、定价。只有一级认购会动货币；二级买卖和回购只动周转。",
+  shadow:"非银不直接创造货币，但它能把银行的资金搬到监管看不到的表外去放贷——那时全系统的存款货币是增加的。",
+  cross:"外汇占款是「资产是外汇」的货币创造。这条管子的粗细，取决于企业和居民愿不愿意结汇。"
+};
+function applyFilter(k){
+  currentKind = k;
+  document.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c.dataset.k === k));
+  clearFocus();
+  EDGES.forEach(e => {
+    const show = k === "all" || e.kind === k;
+    ["edges","labels","badges"].forEach(layer => {
+      const g = svg.querySelector(`#${layer} [data-id="${e.id}"]`);
+      if (g) g.classList.toggle("hidden", !show);
+    });
+  });
+  if (k !== "all"){
+    panel.innerHTML = `<div class="pcard"><h3>${KIND_NAME[k]}</h3>
+      <p>${FILTER_NOTE[k] || ""}</p>
+      <p style="color:var(--mut2);font-size:12px">点图上的箭头看分录，点「全部」回到总览。</p></div>`;
+  } else {
+    panelHome();
+  }
+}
+
+/* ============================ 初始化 ============================ */
+function init(){
+  buildDefs();
+  buildGrid();
+  buildAnnotation();
+  buildToolbox();
+  buildEdges();
+  gNodes = el("g", {id:"nodes"});
+  buildNodes();
+  buildBadges();
+
+  svg.querySelectorAll(".edge[data-id]").forEach(g => {
+    const id = g.getAttribute("data-id");
+    g.addEventListener("click", ev => {
+      ev.stopPropagation();
+      showEdge(EDGES.find(e => e.id === id));
+    });
+  });
+
+  svg.addEventListener("click", ev => {
+    if (ev.target === svg) { clearFocus(); panelHome(); }
+  });
+  document.addEventListener("keydown", ev => {
+    if (ev.key === "Escape"){ stopDemo(); clearFocus(); panelHome(); }
+  });
+
+  buildChips();
+  buildOps();
+  buildMetrics();
+  refreshMetrics();
+  panelHome();
+
+  $("resetBtn").onclick = () => {
+    acc = {M2:0,B:0,R:0,G:0,L:0,S:0};
+    refreshMetrics();
+    $("lastop").innerHTML = "已重置。所有指标回到 0 变动。";
+    stopDemo();
+  };
+  $("demoBtn").onclick = () => { demo.running ? stopDemo() : startDemo(); };
+}
+init();
+})();
+</script>
+</body>
+</html>
