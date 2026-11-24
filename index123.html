@@ -1,0 +1,3005 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>中国货币流通 · 六层资金流向图</title>
+<style>
+:root{
+  --bg:#0a1120; --bg2:#0e1729; --panel:#111a2b; --halo:#0a1120;
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+  --txt:#eef3ff; --mut:#a9bad4; --mut2:#8b9dba;
+  --base:#4d8dff; --create:#34d17a; --fiscal:#f5a623; --bond:#a78bfa;
+  --shadow:#22d3ee; --cross:#94a3b8; --warn:#ff7a7a;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  display:flex;flex-direction:column;background:
+    radial-gradient(1200px 600px at 30% -10%, #12203a 0%, transparent 60%),
+    radial-gradient(900px 500px at 90% 110%, #16112c 0%, transparent 55%),
+    var(--bg);
+  color:var(--txt);
+  font-family:"Microsoft YaHei UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+}
+/* ---------- header ---------- */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+  padding:16px 22px 12px;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap}
+h1{margin:0;font-size:19px;font-weight:650;letter-spacing:.3px}
+h1 span{color:var(--mut2);font-weight:400}
+.h-sub{margin:5px 0 0;font-size:12.5px;color:var(--mut);letter-spacing:.2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chip{font:inherit;font-size:12px;color:var(--mut);background:rgba(255,255,255,.035);
+  border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer;
+  transition:.16s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.chip:hover{color:var(--txt);border-color:var(--line2);background:rgba(255,255,255,.07)}
+.chip.on{color:#0a1020;font-weight:650;border-color:transparent}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.85}
+.chip[data-k="all"].on{background:#e8eefc}
+.chip[data-k="base"].on{background:var(--base);color:#04122e}
+.chip[data-k="create"].on{background:var(--create);color:#03150a}
+.chip[data-k="fiscal"].on{background:var(--fiscal);color:#1c1200}
+.chip[data-k="bond"].on{background:var(--bond);color:#14082e}
+.chip[data-k="shadow"].on{background:var(--shadow);color:#00171c}
+.chip[data-k="cross"].on{background:var(--cross);color:#0d1520}
+/* ---------- main ---------- */
+main{flex:1;display:flex;min-height:0}
+#stage{flex:1;min-width:0;position:relative}
+#canvas{width:100%;height:100%;display:block;fill:var(--txt)}
+aside{width:392px;flex:none;border-left:1px solid var(--line);background:rgba(14,23,41,.62);
+  overflow-y:auto;padding:16px 16px 28px;backdrop-filter:blur(6px)}
+aside::-webkit-scrollbar{width:8px}
+aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
+/* ---------- footer ---------- */
+footer{flex:none;border-top:1px solid var(--line);background:rgba(14,23,41,.68);padding:10px 18px 12px}
+.ops{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+.op{font:inherit;font-size:12px;color:var(--mut);background:rgba(255,255,255,.04);
+  border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;transition:.15s;
+  display:flex;align-items:center;gap:6px}
+.op:hover{color:var(--txt);background:rgba(255,255,255,.09);border-color:var(--line2);transform:translateY(-1px)}
+.op b{font-weight:650;font-size:11px;opacity:.72}
+.op[data-tone="up"]:hover{border-color:rgba(52,209,122,.55)}
+.op[data-tone="down"]:hover{border-color:rgba(255,122,122,.55)}
+.op[data-tone="flat"]:hover{border-color:rgba(167,139,250,.55)}
+.mrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.metrics{display:flex;gap:8px;flex-wrap:wrap;flex:1}
+.m{min-width:92px;border:1px solid var(--line);border-radius:9px;padding:5px 10px;background:rgba(255,255,255,.025)}
+.m .k{font-size:10.5px;color:var(--mut2);letter-spacing:.3px}
+.m .v{font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.m .v.up{color:var(--create)} .m .v.down{color:var(--warn)} .m .v.zero{color:var(--mut2)}
+.macts{display:flex;gap:8px}
+.btn{font:inherit;font-size:12.5px;padding:7px 14px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line2);background:rgba(255,255,255,.06);color:var(--txt);transition:.15s}
+.btn:hover{background:rgba(255,255,255,.12)}
+.btn.primary{background:linear-gradient(180deg,#3f7bff,#2f5fe0);border-color:transparent;font-weight:600}
+.btn.primary:hover{filter:brightness(1.12)}
+.lastop{margin-top:8px;font-size:12px;color:var(--mut);min-height:16px}
+.lastop b{color:var(--txt);font-weight:600}
+/* ---------- svg ---------- */
+.node{cursor:pointer}
+.node .card{fill:rgba(255,255,255,.065);stroke:rgba(255,255,255,.17);stroke-width:1.2;
+  transition:.18s}
+.node:hover .card{fill:rgba(255,255,255,.08);stroke:rgba(255,255,255,.28)}
+.node.dim .card{opacity:.35}
+.node.dim text{opacity:.42}
+.node.focus .card{fill:rgba(255,255,255,.1);stroke:rgba(255,255,255,.4);stroke-width:1.6}
+.n-title{font-size:24px;fill:#f4f8ff;font-weight:650;letter-spacing:.5px}
+.n-sub{font-size:14px;fill:var(--mut)}
+.n-sub2{font-size:13px;fill:var(--mut2)}
+.bar{opacity:.9}
+.edge .line{fill:none;stroke-width:2.6;stroke-linecap:round;opacity:.74;
+  transition:opacity .18s,stroke-width .18s}
+.edge .halo{fill:none;stroke:var(--halo);stroke-width:10;opacity:.95}
+.edge[data-kind="base"]   .line{stroke:var(--base)}
+.edge[data-kind="create"] .line{stroke:var(--create)}
+.edge[data-kind="fiscal"] .line{stroke:var(--fiscal)}
+.edge[data-kind="bond"]   .line{stroke:var(--bond)}
+.edge[data-kind="shadow"] .line{stroke:var(--shadow)}
+.edge[data-kind="cross"]  .line{stroke:var(--cross)}
+.edge[data-kind="base"]   .elabel{fill:#9dc0ff}
+.edge[data-kind="create"] .elabel{fill:#7fe0a8}
+.edge[data-kind="fiscal"] .elabel{fill:#f7c374}
+.edge[data-kind="bond"]   .elabel{fill:#c4b1fb}
+.edge[data-kind="shadow"] .elabel{fill:#7fe3f2}
+.edge[data-kind="cross"]  .elabel{fill:#b3c1d4}
+.elabel{font-size:15px;fill:var(--mut);letter-spacing:.2px;
+  paint-order:stroke;stroke:var(--halo);stroke-width:4.5px;stroke-linejoin:round;
+  transition:opacity .18s,fill .18s}
+.elabel.hi{fill:var(--txt)}
+.badge circle{transition:opacity .18s}
+.badge text{font-size:13px;font-weight:700;fill:#06101f;text-anchor:middle;dominant-baseline:central;
+  font-variant-numeric:tabular-nums;transition:opacity .18s}
+.dimmed{opacity:.09 !important;pointer-events:none}
+.hidden{display:none !important}
+.edge.on .line{opacity:1;stroke-width:3.6;stroke-dasharray:12 7;animation:flow .85s linear infinite}
+.edge.on .elabel{fill:var(--txt)}
+@keyframes flow{to{stroke-dashoffset:-38}}
+.node.on .card{fill:rgba(255,255,255,.11);stroke:rgba(255,255,255,.45);stroke-width:1.8}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{stroke-opacity:.25}50%{stroke-opacity:.9}}
+/* ---------- panel ---------- */
+.pcard{border:1px solid var(--line);border-radius:14px;padding:14px 15px;background:rgba(255,255,255,.028);
+  margin-bottom:12px}
+.pcard h3{margin:0 0 10px;font-size:14px;font-weight:650;letter-spacing:.3px;display:flex;align-items:center;gap:8px}
+.pcard h3 .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  font-size:12px;font-weight:700;color:#06101f;flex:none}
+.pcard p{margin:0 0 9px;font-size:13px;line-height:1.72;color:#c3cfe4}
+.pcard p:last-child{margin-bottom:0}
+.flowline{font-size:12.5px;color:var(--mut);line-height:1.65;padding-left:14px;position:relative;margin-bottom:6px}
+.flowline::before{content:"";position:absolute;left:2px;top:8px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.6}
+table.tacc{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:12px}
+table.tacc th{color:var(--mut2);font-weight:500;text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.4px}
+table.tacc td{padding:5px 6px;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.05);line-height:1.55}
+table.tacc td:first-child{color:var(--mut);white-space:nowrap;width:52px}
+table.tacc .pos{color:#8fd8ff} table.tacc .neg{color:#ffb4b4}
+.impacts{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}
+.imp{font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid;font-variant-numeric:tabular-nums}
+.imp.up{color:#6ee7a8;border-color:rgba(52,209,122,.35);background:rgba(52,209,122,.1)}
+.imp.down{color:#ffb0b0;border-color:rgba(255,122,122,.35);background:rgba(255,122,122,.1)}
+.imp.flat{color:var(--mut);border-color:var(--line2);background:rgba(255,255,255,.04)}
+.one{font-size:13px;line-height:1.75;color:#dfe8f7;border-left:2px solid var(--line2);padding-left:11px;margin-top:11px}
+.legend{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.lg{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--mut)}
+.lg i{width:26px;height:0;border-top:3px solid;border-radius:2px;flex:none}
+.lg.dash i{border-top-style:dashed}
+.kbd{display:inline-block;font-size:11px;padding:1px 6px;border:1px solid var(--line2);border-radius:5px;color:var(--mut)}
+.backbtn{font:inherit;font-size:11.5px;color:var(--mut);background:none;border:none;cursor:pointer;padding:0 0 10px}
+.backbtn:hover{color:var(--txt)}
+/* ---------- 工具箱 ---------- */
+.tbox{cursor:pointer}
+.tbg{transition:.18s}
+.tbox:hover .tbg{fill:rgba(77,141,255,.1);stroke:rgba(77,141,255,.55)}
+.tbox-t{font-size:14.5px;font-weight:650;fill:var(--txt)}
+.tbox-s{font-size:10.5px;fill:var(--mut2)}
+.tbox-n{font-size:13px;font-weight:600}
+.tbox-g{font-size:10px;fill:var(--mut2)}
+.tbox-r{font-size:11px;fill:var(--mut)}
+.lad{display:flex;flex-direction:column;gap:7px;margin:8px 0 4px}
+.lad-row{display:flex;align-items:center;gap:8px}
+.lad-k{width:92px;flex:none;font-size:11px;color:var(--mut);text-align:right;white-space:nowrap}
+.track{position:relative;flex:1;height:9px;border-radius:5px;background:rgba(255,255,255,.07)}
+.track i{position:absolute;top:0;height:9px;border-radius:5px}
+.lad-ax{display:flex;justify-content:space-between;margin-left:100px;font-size:10px;color:var(--mut2);margin-top:3px}
+.tool{border-left:2px solid var(--line2);padding:1px 0 1px 10px;margin-bottom:13px}
+.tool:last-child{margin-bottom:0}
+.tool-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}
+.tool-h b{font-size:12.5px;color:var(--txt);font-weight:650}
+.tool-h span{font-size:10.5px;color:var(--mut2);white-space:nowrap}
+.tool-r{font-size:12px;color:#c3cfe4;line-height:1.7;margin-top:3px}
+.chain{margin:10px 0 2px}
+.ch{border-left:2px solid rgba(77,141,255,.45);padding:1px 0 1px 11px}
+.ch-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px}
+.ch-h b{font-size:13px;color:var(--txt);font-weight:650;letter-spacing:.2px}
+.ch-h span{font-size:10.5px;color:var(--mut2)}
+.ch-d{font-size:11.5px;color:var(--mut);line-height:1.72}
+.ch-ar{display:flex;align-items:center;margin:6px 0 6px 2px;font-size:10.5px;color:var(--mut2)}
+.ch-ar::before{content:"↓";color:#6fa4ff;margin-right:6px;font-size:12px;line-height:1}
+.tool-dl{margin:0 0 6px}
+.tool-dl>div{display:flex;gap:8px;font-size:11px;line-height:1.72}
+.tool-dl i{flex:none;width:26px;font-style:normal;color:var(--mut2)}
+.tool-dl span{flex:1;color:var(--mut)}
+.cp{margin-top:13px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+.cp:first-child{margin-top:4px;padding-top:0;border-top:none}
+.cp-h{margin-bottom:4px}
+.cp-h b{font-size:12.5px;color:var(--txt);display:block;margin-bottom:1px}
+.cp-h span{font-size:10.5px;color:var(--mut2)}
+.cp-d{font-size:11.5px;color:var(--mut);line-height:1.72;margin-bottom:6px}
+.cp-r{display:flex;gap:8px;font-size:11px;line-height:1.68;margin-top:3px}
+.cp-r i{flex:none;width:88px;font-style:normal;color:#9fb2cc}
+.cp-r span{flex:1;color:var(--mut)}
+.cp-note{margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(245,166,35,.07);border-left:2px solid rgba(245,166,35,.45);font-size:10.5px;color:#e3d3b4;line-height:1.7}
+.au{margin-top:12px}
+.au:first-child{margin-top:4px}
+.au b{font-size:12px;color:var(--txt);display:block;margin-bottom:2px}
+.au p{margin:0;font-size:11.5px;color:var(--mut);line-height:1.72}
+.deep-p{font-size:12.5px;line-height:1.8;color:#dfe8f7;margin:0 0 11px}
+.deep-p:last-child{margin-bottom:0}
+.dtab{width:100%;border-collapse:collapse;margin:2px 0 12px;font-size:11px}
+.dtab th{text-align:left;color:var(--mut2);font-weight:400;padding:0 0 6px;font-size:10.5px}
+.dtab td{vertical-align:top;padding:7px 8px 7px 0;border-top:1px solid rgba(255,255,255,.07);line-height:1.65;color:var(--mut)}
+.dtab td:first-child{width:74px}
+.dtab td b{display:block;font-size:12px;color:var(--txt);font-weight:650}
+.dtab td span{display:block;font-size:10px;color:var(--mut2)}
+.keybox{border-left:2px solid var(--base);background:rgba(77,141,255,.075);padding:10px 12px;
+  border-radius:0 9px 9px 0;font-size:12px;line-height:1.8;color:#dfe8f7;margin:0 0 12px}
+.keybox b{color:#9dc0ff}
+.tl{margin:2px 0 12px}
+.tl-r{display:flex;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.07)}
+.tl-r:first-child{border-top:none}
+.tl-y{flex:none;width:78px;font-size:10.5px;color:var(--mut2);padding-top:2px}
+.tl-b{flex:1}
+.tl-b b{display:block;font-size:12px;color:var(--txt);font-weight:650;margin-bottom:1px}
+.tl-b em{font-style:normal;font-size:11px;color:var(--mut);line-height:1.68}
+.rztree{margin:6px 0 2px}
+.rz1{display:flex;align-items:baseline;gap:8px;padding:4px 0 6px}
+.rz1 b{font-size:12.5px;color:var(--txt);font-weight:650}
+.rz1 span{font-size:10px;color:var(--mut2)}
+.rz2,.rz3{display:flex;align-items:baseline;gap:7px;padding:4px 0;margin-left:7px;border-left:1px solid rgba(255,255,255,.12)}
+.rz2{padding-left:12px;font-size:11.5px;color:#cfdaeb}
+.rz3{padding-left:24px;font-size:11px;color:var(--mut);border-left-color:rgba(255,255,255,.07)}
+.rz2 i,.rz3 i{flex:none;width:7px;height:7px;border-radius:2px;transform:translateY(-1px)}
+.rz2 em,.rz3 em{font-style:normal;color:var(--mut2);font-size:10.5px;margin-left:2px}
+.rz3 b{color:#dfe8f7;font-weight:600;margin-right:2px}
+.era{display:flex;gap:11px;padding:14px 0 13px;border-top:1px solid rgba(255,255,255,.07)}
+.era:first-child{border-top:none;padding-top:4px}
+.era-n{flex:none;width:19px;height:19px;border-radius:50%;background:rgba(77,141,255,.14);
+  border:1px solid rgba(77,141,255,.4);color:#9dc0ff;font-size:10px;line-height:17px;text-align:center;margin-top:1px}
+.era-b{flex:1;min-width:0}
+.era-y{font-size:10.5px;color:var(--mut2);letter-spacing:.3px}
+.era-t{font-size:13px;color:var(--txt);font-weight:650;margin:2px 0 5px}
+.era-m{font-size:11.5px;color:var(--mut);line-height:1.75}
+.era-k{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.era-k span{font-size:10px;color:#9fb2cc;background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.07);border-radius:5px;padding:2px 6px;white-space:nowrap}
+.era-w{margin-top:9px;padding-left:9px;border-left:2px solid rgba(245,166,35,.5);
+  font-size:10.5px;color:#d8c4a0;line-height:1.68}
+.barchart{display:flex;align-items:flex-end;gap:3px;height:118px;margin:8px 0 6px}
+.bc-r{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.bc-b{display:block;width:100%;border-radius:2px 2px 0 0;background:linear-gradient(180deg,#4d8dff,#2b5399)}
+.bc-r em{font-style:normal;font-size:8.5px;color:var(--mut2);margin-top:3px;line-height:1}
+.cs{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid rgba(255,255,255,.07);cursor:pointer}
+.cs:first-of-type{border-top:none}
+.cs:hover{background:rgba(255,255,255,.03)}
+.cs-y{flex:none;width:68px;font-size:10px;color:var(--mut2);line-height:1.45}
+.cs-b{flex:1;min-width:0}
+.cs-t{font-size:12.5px;color:var(--txt);font-weight:600}
+.cs-d{font-size:10.5px;color:var(--mut2);margin-top:2px;line-height:1.55}
+.cs-a{flex:none;color:#6fa4ff;font-size:13px}
+.bsbar{height:6px;border-radius:4px;background:rgba(255,255,255,.075);margin-top:6px;overflow:hidden}
+.bsbar i{display:block;height:100%;border-radius:4px}
+.bsfoot{font-size:11px;color:var(--mut2);line-height:1.75;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)}
+.bstab{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px}
+.bstab th{font-weight:600;color:var(--mut2);text-align:right;font-size:10.5px;padding:0 0 7px}
+.bstab th:first-child,.bstab td:first-child{text-align:left;color:var(--mut)}
+.bstab td{text-align:right;padding:6px 0;border-top:1px solid rgba(255,255,255,.06);color:var(--txt)}
+.st-y{display:inline-block;font-size:10.5px;color:var(--mut2);border:1px solid rgba(255,255,255,.12);
+  border-radius:5px;padding:2px 7px;margin-bottom:9px}
+.tm{padding:9px 0;border-top:1px solid rgba(255,255,255,.06)}
+.tm:first-of-type{border-top:none;padding-top:0}
+.tm b{display:block;font-size:12px;color:#9dc0ff;margin-bottom:3px}
+.tm p{margin:0;font-size:11.5px;color:var(--mut);line-height:1.75}
+.tmL{padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
+.tmL:first-of-type{border-top:none;padding-top:0}
+.tmL b{display:block;font-size:12px;color:var(--txt);margin-bottom:2px}
+.tmL span{font-size:11px;color:var(--mut);line-height:1.65}
+.chips2{display:flex;flex-wrap:wrap;gap:6px}
+.chips2 span{font-size:10.5px;color:#9fb2cc;background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.07);border-radius:5px;padding:3px 7px}
+.stnav{display:flex;gap:8px;margin-top:10px}
+.stnav .btn{flex:1;margin:0}
+.dprog{display:flex;align-items:center;gap:5px;margin-bottom:10px}
+.dprog i{width:20px;height:3px;border-radius:2px;background:rgba(255,255,255,.12)}
+.dprog i.done{background:rgba(77,141,255,.5)}
+.dprog i.cur{background:#4d8dff;box-shadow:0 0 8px rgba(77,141,255,.6)}
+.dprog span{margin-left:auto;font-size:10.5px;color:var(--mut2)}
+.dwho{font-size:11.5px;color:var(--mut2);margin-bottom:10px}
+.dwho b{color:#9dc0ff;font-weight:600}
+.dsub{font-size:10.5px;color:var(--mut2);margin:13px 0 6px;letter-spacing:.4px}
+.dctl{display:flex;gap:7px;margin-top:14px}
+.dctl .btn{flex:1;margin:0;padding:7px 4px;font-size:11.5px}
+.dctl .btn[disabled]{opacity:.35;cursor:default}
+.rled{margin:10px 0 2px;border-left:2px solid rgba(77,141,255,.45);padding-left:11px}
+.rled>div{display:flex;gap:8px;font-size:10.5px;line-height:1.75}
+.rled i{flex:none;width:84px;font-style:normal;color:var(--mut2)}
+.rled span{flex:1;color:#c9d6ea}
+.btn.wout{color:#6ee7a8;border-color:rgba(52,209,122,.38)}
+.btn.win{color:#ffb0b0;border-color:rgba(255,122,122,.38)}
+.wsum{font-size:12px;color:#dfe8f7;line-height:1.8;margin-bottom:4px}
+.wg{margin-top:14px}
+.wg:first-of-type{margin-top:6px}
+.wg-t{font-size:10.5px;color:var(--mut2);letter-spacing:.4px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07)}
+.wi{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
+.wi:hover{background:rgba(255,255,255,.03)}
+.wi-n{flex:none;width:19px;height:19px;border-radius:50%;font-size:10px;line-height:18px;text-align:center;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#cfe0f7;margin-top:1px}
+.wi-b{flex:1;min-width:0}
+.wi-h{font-size:12px;color:var(--txt);font-weight:600;margin-bottom:2px}
+.wi-d{font-size:11px;color:var(--mut);line-height:1.65}
+@media (max-width:1080px){
+  main{flex-direction:column}
+  aside{width:auto;max-height:38vh;border-left:none;border-top:1px solid var(--line)}
+  #stage{min-height:52vh}
+  html,body{overflow:auto;height:auto}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>中国货币流通 · 六层资金流向图 <span>／ 每根箭头都是一笔记账</span></h1>
+    <p class="h-sub">先读右侧「从 1994 走到今天」六站 · 每站都配工具与术语，图上对应箭头会自动点亮；也可以直接点箭头看分录</p>
+  </div>
+  <nav class="chips" id="chips"></nav>
+</header>
+
+<main>
+  <div id="stage"><svg id="canvas" viewBox="0 0 1760 980" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <aside id="panel"></aside>
+</main>
+
+<footer>
+  <div class="ops" id="ops"></div>
+  <div class="mrow">
+    <div class="metrics" id="metrics"></div>
+    <div class="macts">
+      <button class="btn wout" id="waterOut">▼ 放水</button>
+      <button class="btn win" id="waterIn">▲ 抽水</button>
+      <button class="btn" id="resetBtn">重置</button>
+      <button class="btn primary" id="demoBtn">▶ 房贷走完全程</button>
+    </div>
+  </div>
+  <div class="lastop" id="lastop"></div>
+  <div style="font-size:11px;color:var(--mut2);line-height:1.6;margin-top:6px">图中的利率与存量取近年量级，用于理解机制；实时数值以央行公布为准。</div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const SVGNS = "http://www.w3.org/2000/svg";
+const C = {
+  base:"#4d8dff", create:"#34d17a", fiscal:"#f5a623",
+  bond:"#a78bfa", shadow:"#22d3ee", cross:"#94a3b8", warn:"#ff7a7a"
+};
+const KIND_NAME = {
+  base:"基础货币", create:"货币创造", fiscal:"财政",
+  bond:"债市", shadow:"非银·影子", cross:"跨境"
+};
+
+/* ============================ 投放工具 ============================ */
+const RATE_CHAIN = [
+  { k:"政策利率", n:"2026.11 起：隔夜逆回购 1.25%（此前 7 天 1.40%）",
+    d:"央行每天向一级交易商出价。它定的是整条链条的<b>起点价</b>，也是最粗的那一根缰绳。" },
+  { ar:"银行之间押着国债互相借钱",
+    k:"DR007", n:"银行间 7 天质押式回购利率",
+    d:"<b>D</b>＝存款类机构，<b>R</b>＝回购，<b>007</b>＝7 天。银行拿利率债（国债、政金债、地方债）做押品互相借 7 天的钱，按成交量加权算出的利率。押品风险低、对手是银行，几乎没有信用风险——所以它是最干净的「批发价」。" },
+  { ar:"银行缺中期资金，发存单去借",
+    k:"同业存单", n:"银行发给同业的借条，1 年以内、可转让",
+    d:"银行把「我欠你钱」写成一张可流通的凭证，卖给其他银行、货基、理财。它是银行的<b>中期批发成本</b>：比 DR007 长，比贷款短，是政策利率与 LPR 之间的中转站。" },
+  { ar:"18 家报价行每月 20 日报一次价",
+    k:"LPR", n:"贷款市场报价利率，分 1 年期和 5 年以上",
+    d:"报价行在政策利率上加点报出，去掉最高最低后取平均。它是银行给<b>最优质客户</b>的贷款利率；房贷看 5 年以上那一档。" },
+  { ar:"银行再按你的资质加一笔风险溢价",
+    k:"贷款利率", n:"你实际付的那个数",
+    d:"同样看 LPR，国企和民企、有抵押和无抵押、三年期和三十年期，加的点完全不同。所以政策利率降 10bp，你的月供未必同幅下降。" }
+];
+
+const TOOLS = [
+  { name:"7 天逆回购", tag:"7天 · 质押", kind:"base",
+    short:"定价格：短端利率的锚，每天可调",
+    tenor:"7 天（临时隔夜正/逆回购围绕它 −20bp / +50bp）",
+    obj:"一级交易商（约 50 家，含券商；名单见上）",
+    price:"2026.11 起：固定数量、利率招标、多重价位中标，主要在税期/月末开展（此前为固定利率、数量招标，其利率曾即政策利率）",
+    way:"质押式：债券押在央行，到期还钱赎券",
+    role:"曾经的每日操作主力。2026 年 11 月起让位给隔夜逆回购，自己变成税期、月末才动的精细调节阀；政策利率的锚也随之切到隔夜逆回购利率。它一动，银行间利率、存单、LPR、贷款利率会顺着往下传——这条链下一节拆开讲。",
+    bar:[18,24], flow:"repo" },
+  { name:"买断式逆回购", tag:"3M/6M · 买断", kind:"base",
+    short:"所有权转移，盘活持债，填中期空白",
+    tenor:"3 个月 / 6 个月",
+    obj:"一级交易商（同一批机构，名单见上）",
+    price:"固定数量、利率招标、多重价位中标 —— 利率由机构报出来，随行就市",
+    way:"买断式：债券所有权转移给央行，券不再属于银行",
+    role:"2024 年 10 月启用。① 补上 1 个月到 1 年的期限空白；② 因为所有权转移，银行的券被真正卖掉、释放了质押额度，能跨季跨年用。它的价格由机构报价决定、不由央行宣布——详见上面「招标是怎么回事」。",
+    bar:[38,58], flow:"out" },
+  { name:"MLF", tag:"1年 · 质押", kind:"base",
+    short:"中期补水；已退出政策利率角色",
+    tenor:"1 年",
+    obj:"一级交易商（以大行、股份行为主，名单见上）",
+    price:"利率招标、多重价位中标（2025 年 3 月起）—— 已退出政策利率",
+    way:"质押式",
+    role:"曾经是最重要的中期工具，也是政策利率的锚。2025 年 3 月起改多重价位中标，政策利率角色先让给 7 天逆回购、2026.11 又转给隔夜逆回购，余额在压降。",
+    flow:"mlf",
+    bar:[57,63] },
+  { name:"PSL", tag:"3-5年 · 政策行", kind:"fiscal",
+    short:"给政策性银行，投向棚改/保交楼",
+    tenor:"3–5 年",
+    obj:"政策性银行（只有 3 家，名单见上）",
+    price:"央行直接定价，通常低于同期限市场利率",
+    way:"质押（高质量资产）",
+    role:"准财政。钱带指定用途：棚改、水利、保交楼、城中村改造。期限长、不经过商业银行，所以它对 M2 的传导路径和普通贷款不一样。",
+    bar:[76,96], flow:"psl" },
+  { name:"再贷款", tag:"定向 · 低息", kind:"create",
+    short:"定向低息，银行转贷，额度≠用掉",
+    tenor:"通常 1 年，可展期",
+    obj:"各类银行（大行、股份行、城商行、农商行都能申请）",
+    price:"央行定价，通常低于同期限市场利率",
+    way:"信用 / 质押",
+    role:"结构性工具：支农支小、科技创新、碳减排、普惠养老。定向、带用途、带考核——额度批下来不等于用得出去，银行得先找到合格企业，传导经常打折。",
+    bar:[48,64], flow:"relend" },
+  { name:"降准", tag:"永久 · 非投放", kind:"cross",
+    short:"不是投放：法定转超额，动乘数",
+    tenor:"永久",
+    obj:"全部存款类机构（银行、农信社、村镇银行、外资行）",
+    price:"没有价格 —— 它改的是准备金比例，不是利率",
+    way:"不产生新的基础货币，只改准备金的构成",
+    role:"把法定准备金转成超额准备金，基础货币一分没多。它解锁的是「能贷多少」，不是「有多少」——降准降的是乘数的分母。",
+    bar:[0,100], flow:"rrr" }
+];
+/* ---------- 六站课程：从 1994 走到今天 ---------- */
+const COURSE = [
+  { y:"1994 以前", t:"钱是「计划」出来的", tone:"cross",
+    s:"没有外汇，也没有市场：配额、指标、再贷款。",
+    bg:["那时候还没有「央行投放基础货币」这个说法，只有「信贷计划」：国家每年定一个贷款总盘子，切给各家专业银行，银行照着放。企业要钱找银行，不找市场；利率是国家定的，能贷多少也是国家定的。",
+        "外汇更是极度短缺——1993 年底储备只有 212 亿美元，不够三个月进口。这个阶段外汇占款只占基础货币的 26.4%，央行投放靠的是再贷款和财政透支。"],
+    terms:[["基础货币","央行发行的现金，加上银行存在央行的准备金。它是整个货币体系的地基——M2 是它被反复放贷之后膨胀出来的结果。"],
+           ["再贷款","央行直接把钱借给银行。1994 年以前，这是投放基础货币的主要方式，和外汇没有关系。"],
+           ["专业银行","工行、农行、中行、建行。当时它们不是商业银行，而是按行业执行国家信贷计划的机构：工行管工业、农行管农业、中行管外汇外贸、建行管基建。"],
+           ["信贷规模","国家每年给银行下的贷款指标，不得突破。利率也是定死的——那个年代既管价格，也管数量。"],
+           ["财政透支","财政收不抵支时直接向央行借钱，等于政府直接印钱花。1995 年《人民银行法》把这条路禁了。"],
+           ["外汇占款","央行买外汇时付出的人民币。这个阶段只占基础货币约 26.4%，还不是主角。"]],
+    tools:[["再贷款","央行 → 专业银行，信用放款，主要支持粮棉油收购和国企流动资金。"],
+           ["信贷规模指标","行政分配贷款额度，决定谁能借到钱、借多少。"],
+           ["财政透支","财政直接向央行借款补赤字。"]],
+    data:["外汇占款占比 26.4%","外储 212 亿美元（1993）","支付能力仅 1.3 个月进口"],
+    why:"1993 年汇率双轨、黑市盛行，外储不够三个月进口，靠计划分配已经撑不住。1994 年 1 月 1 日，汇率并轨。",
+    e:["e2","e5"], nd:["pbc","bank"] },
+
+  { y:"1994 年", t:"接上外汇这根管子", tone:"base",
+    s:"汇率并轨 + 强制结售汇，央行开始为外汇印钱。",
+    bg:["1994 年 1 月 1 日，官方汇率从 5.80 并到 8.70，人民币一次贬值约 33%；同时建立银行间外汇市场和强制结售汇制度。",
+        "企业出口挣的外汇必须卖给指定银行，银行也不能自己留着，必须卖给央行。央行为了买这些外汇，只能印人民币——这就是外汇占款。从这一步起，人民币的投放开始被外汇流入牵着走。"],
+    terms:[["汇率并轨","之前有两套汇率：官方牌价 5.80，调剂市场价 8.70 左右。并轨就是取消双轨，统一到 8.70。"],
+           ["结汇 / 售汇","结汇＝企业把外汇卖给银行；售汇＝银行把外汇卖给需要用汇的企业。强制结汇意味着企业不能自己持有外汇。"],
+           ["外汇占款","央行买外汇时付出的人民币。买 1 美元，就按汇率投放约 8.7 元基础货币。"],
+           ["外汇储备","央行攒下的外汇。它和外汇占款是一枚硬币的两面：储备是资产，占款是为买它而付出的负债。"],
+           ["银行间外汇市场","银行之间买卖外汇的市场。央行在这里无限量接盘，以此守住汇率目标。"]],
+    tools:[["强制结售汇","企业经常项目外汇收入 100% 卖给指定银行，银行再卖给央行。"],
+           ["银行间外汇市场","1994 年建立，央行在此接盘，形成外汇占款。"]],
+    data:["1994 当年占比 55.5%","此前长期低于 10%","汇率 5.80 → 8.70"],
+    why:"管子一接上就关不掉了：只要持续顺差，央行就得持续买汇、持续投放。",
+    e:["e1","e17","e2"], nd:["off","pbc"] },
+
+  { y:"2001 — 2008", t:"入世之后，钱自己涌进来", tone:"base",
+    s:"加入 WTO，双顺差把外汇占款推成主渠道。",
+    bg:["2001 年加入 WTO，出口爆发。经常项目顺差加上资本项目流入，就是「双顺差」。外汇储备从 2001 年的 2121 亿美元涨到 2008 年的近 2 万亿。",
+        "这段时间最关键的一点：央行投放多少，不由自己决定，由出口决定。这就是「被动投放」——它不想买也得买，因为要守汇率。"],
+    terms:[["双顺差","经常项目（贸易）和资本项目（外资）同时顺差，两股外汇一起涌进来。"],
+           ["国际收支","一国与外国全部经济往来的记账表，分经常项目、资本与金融项目两大块。"],
+           ["被动投放","央行不想投也得投——为了守汇率，市场上多出来的外汇它必须全部买下。"],
+           ["冲销 / 对冲","把被动投出去的钱再收回来，防止通胀。这是「投放」的镜像动作。"],
+           ["央票","央行自己发的短期债券，卖给银行把流动性收回来。2002 年起大规模使用。"]],
+    tools:[["央票","2003 年后成为主力对冲工具，滚动发行回收流动性。"],
+           ["削减再贷款","早期靠少放再贷款来对冲。"],
+           ["提高存准率","2006 年后接棒，成为最主要的对冲手段。"]],
+    data:["外储 2121 亿 → 近 2 万亿","2008 年顺差 2981 亿美元","2005.10 占比破 100%"],
+    why:"对冲到最后央票也发不动了——成本太高、规模太大。2006 年起转向存款准备金率。",
+    rrr:true,
+    e:["e1","e2","e3"], nd:["off","pbc","bank"] },
+
+  { y:"2005 — 2014", t:"升值、提准，和对冲的天花板", tone:"fiscal",
+    s:"汇改启动，人民币升值，存准率一路提到 21.5%。",
+    bg:["2005 年 7 月 21 日汇改，人民币不再单一盯住美元，改为参考一篮子货币、有管理的浮动。汇率从 8.19 一路升到 2014 年的 6.14。",
+        "同期外汇占款与基础货币之比在 2006 年 5 月达到 113.56%——超过 100%，意味着外汇占款比基础货币本身还多，因为其他渠道在净回笼。为了不被通胀压垮，央行只能不断提准、不断发央票。"],
+    terms:[["汇率形成机制","汇率由什么决定。1994–2005 是盯住美元；2005 年后是参考一篮子、有管理浮动。"],
+           ["参考一篮子","不再只盯美元，而是看一篮子货币的加权平均。"],
+           ["存款准备金率","银行必须把存款的一定比例存在央行、不能动用。提高它，等于把银行的钱锁起来。原理见上一站「存准率怎么理解」。"],
+           ["对冲率","（准备金余额＋央票余额）÷ 外汇占款余额。测算显示某些时期约 80%——投出去的钱八成又被收了回来。"],
+           ["热钱","冲着升值预期进来的短期投机资金，来得快也走得快。"]],
+    tools:[["提准","2006 年后主力对冲工具，存准率从 6% 提到 21.5%（2011 年大型银行峰值）。"],
+           ["央票","继续滚动发行。"],
+           ["汇改","2005 年 7 月 21 日，参考一篮子、有管理浮动。"]],
+    data:["2006.5 占比 113.56%","对冲率一度约 80%","汇率 8.19 → 6.14","存准率 6% → 21.5%"],
+    why:"2014 年美联储结束 QE，美元走强，人民币预期反转——外汇开始往外流。",
+    e:["e1","e2","e3"], nd:["pbc","bank"] },
+
+  { y:"2014 — 2018", t:"管子反着转了", tone:"shadow",
+    s:"外汇掉头流出，被动渠道枯竭，只能自己动手。",
+    bg:["2014 年 5 月，外汇占款见顶 27.3 万亿元，之后掉头向下：2015 年 −2.21 万亿，2016 年 −2.91 万亿，2017 年 2 月只剩 21.7 万亿。",
+        "央行突然发现，被动投放的渠道没有了——不是投多投少的问题，是根本没有水进来。于是它第一次真正需要「自己决定投多少、投多长」。"],
+    terms:[["资本流出","钱从国内流向国外，表现为外汇占款下降、外储下降。"],
+           ["藏汇于民","企业和居民自己持有外汇，不再全部结给央行。所以顺差还在，外汇占款却不增了。"],
+           ["Taper","美联储缩减购债规模，美元走强，资金从新兴市场回流美国。"],
+           ["8·11 汇改","2015 年 8 月 11 日中间价改革，人民币一次性贬值约 2%，随后资本流出压力加大。"],
+           ["对其他存款性公司债权","央行资产负债表上的科目，对应逆回购、MLF、PSL 等主动投放。它取代外汇占款成为主渠道。"]],
+    tools:[["逆回购","短期投放，7 天为主，每天操作。"],
+           ["MLF","中期借贷便利，1 年期，2014 年 9 月创立。"],
+           ["PSL","抵押补充贷款，给政策性银行，投向棚改等。"]],
+    data:["27.3 万亿 → 21.7 万亿","2015 年 −2.21 万亿","2016 年 −2.91 万亿","MLF 余额 +4.19 倍"],
+    why:"被动渠道没了，央行只能自己定价、自己选期限——工具时代开始。",
+    e:["e2","e3"], nd:["pbc","bank"] },
+
+  { y:"2018 至今", t:"工具箱时代：自己定价", tone:"create",
+    s:"六件工具、一套利率走廊，投放变成主动选择。",
+    bg:["现在央行投放基础货币，靠的是六件工具的组合：7 天逆回购定短端价格，MLF 给中期资金，PSL 和再贷款做结构，买断式逆回购补期限空白，降准动乘数。",
+        "这套东西就是图上左上角那张虚线卡片。投放从「被动接外汇」变成了「主动选工具」——这是今天所有利率、所有贷款的起点。"],
+    terms:[["政策利率","央行用来宣示政策方向的利率。2026 年 11 月起是隔夜逆回购利率（此前是 7 天逆回购利率）。"],
+           ["利率走廊","央行用两个利率把市场利率框在中间：上限是 SLF 利率，下限是超额准备金利率。"],
+           ["DR007","银行间 7 天质押式回购的加权平均利率，是市场短端利率的代表。"],
+           ["LPR","贷款市场报价利率，18 家银行报价，是贷款利率的定价基准。"],
+           ["买断式逆回购","2024 年 10 月启用。债券所有权转移给央行，银行能盘活手里的债。"],
+           ["结构性工具","带用途、带考核的定向工具，比如支农支小再贷款、碳减排支持工具。"]],
+    tools:[["隔夜逆回购","2026.11 起每日操作，接任政策利率。"],
+           ["7 天逆回购","曾经的每日操作，现主要在税期、月末。"],
+           ["MLF","给中期资金，2025 年 3 月起退出政策利率角色。"],
+           ["买断式逆回购","3M / 6M，补期限空白、盘活持债。"],
+           ["PSL / 再贷款","结构性、定向、带用途。"],
+           ["降准","动乘数，不是投放。"]],
+    data:["隔夜逆回购 1.25%（政策利率）","7 天逆回购 2026.11 转税期工具","MLF 2025.3 退出政策利率"],
+    why:"再往后怎么走，取决于外汇、财政和银行的风险偏好——这三样都在图上。",
+    e:["e2","e3"], nd:["pbc","bank"] }
+];
+/* ---------- 基础货币的五个时代 ---------- */
+const ERAS = [
+  { y:"1994 以前", n:"再贷款时代", tone:"cross",
+    m:"央行直接给专业银行（工行、农行这些）放信用贷款，支持粮棉油收购和国企流动资金；财政也能向央行透支。货币创造的主导权在国内信贷端，外汇不是主角。",
+    k:["外汇占款占比 26.4%","外储 212 亿美元（1993）","支付能力仅 1.3 个月进口"],
+    w:"1993 年汇率双轨、黑市盛行，外储不够三个月进口——倒逼 1994 年并轨。" },
+  { y:"1994 — 2005", n:"外汇占款接棒", tone:"base",
+    m:"1994 年 1 月 1 日汇率并轨，同时建立银行间外汇市场和强制结售汇：企业经常项目外汇收入必须 100% 卖给指定银行，银行再卖给央行。央行每买一笔外汇就支付一笔人民币，这就是外汇占款。",
+    k:["1994 当年 55.5%","此前长期低于 10%","2005.10 突破 100%"] },
+  { y:"2005 — 2014", n:"双顺差高峰与对冲", tone:"fiscal",
+    m:"2005 年 7 月 21 日汇改，人民币不再单一盯住美元，进入渐进升值。入世后的双顺差把外储推到 2014 年 6 月的近 4 万亿美元，外汇占款 2014 年 5 月见顶 27.3 万亿元。被动投放太多，央行只能对冲：先削减再贷款，2003 年后发央票，2006 年后主要靠提准。",
+    k:["2006.5 占比 113.56%","对冲率一度约 80%","外储近 4 万亿（2014.6）"],
+    w:"2005 年美欧施压叠加热钱流入，固定汇率守不住——汇改启动。" },
+  { y:"2014 — 2018", n:"逆转与接棒", tone:"shadow",
+    m:"2014 年 5 月外汇占款见顶后转入持续下降，资本流出成为主导。央行被动投放的渠道枯竭，只能转向主动工具——逆回购、MLF、PSL 接棒。",
+    k:["2015 年 −2.21 万亿","2016 年 −2.91 万亿","2017.2 余额 21.7 万亿","MLF 余额一年增 4.19 倍"],
+    w:"美联储 2014 年 10 月结束 QE，美元走强，人民币预期反转——钱开始往外走。" },
+  { y:"2018 至今", n:"主动工具常态化", tone:"create",
+    m:"基础货币的投放完全由央行主动决定：7 天逆回购定价格，MLF、PSL、再贷款给中期和结构性资金，2024 年 10 月又添了买断式逆回购。投放从「被动接外汇」变成「主动选工具」。",
+    k:["7 天逆回购＝政策利率","买断式逆回购 2024.10","MLF 2025.3 退出政策利率"],
+    w:"被动渠道没了，只能自己定价、自己选期限——这就是「② 投放工具箱」的由来。" }
+];
+
+const SURPLUS = [[2002,304],[2003,255],[2004,321],[2005,1020],[2006,1775],[2007,2639],
+  [2008,2981],[2009,1957],[2010,1815],[2011,1549],[2012,2303],[2013,2590],[2014,3830],[2015,5939]];
+/* ---------- 对手方图鉴 ---------- */
+const COUNTERPARTIES = [
+  { key:"一级交易商",
+    sub:"央行公开市场业务一级交易商 · 约 50 家，名单每年调整一次",
+    d:"只有进了这个名单，才能直接和央行做逆回购、买断式逆回购、MLF。名单里有银行，也有证券公司——这一点很多人不知道。",
+    rows:[
+      ["国有大行（6）","工行、农行、中行、建行、交行、邮储"],
+      ["股份行（12）","招商、浦发、中信、兴业、光大、民生、华夏、广发、平安、浙商、恒丰、渤海"],
+      ["头部城商行","北京银行、上海银行、江苏银行、南京银行、宁波银行等"],
+      ["外资行","汇丰（中国）、渣打（中国）、花旗（中国）等"],
+      ["证券公司","中信证券、国泰君安、中金公司、招商证券等"]
+    ]},
+  { key:"政策性银行",
+    sub:"3 家：国开行、进出口行、农发行",
+    d:"它们不是商业银行，不吸收公众存款，靠发债筹钱、按国家意志放贷。PSL 只给它们——所以这笔钱可以绕过商业银行，直接进项目。",
+    rows:[
+      ["国家开发银行","基建、棚改、城中村改造、重大战略项目"],
+      ["进出口银行","外贸、跨境、「一带一路」、成套设备出口"],
+      ["农业发展银行","粮棉油收储、农业农村基础设施、乡村振兴"]
+    ]},
+  { key:"全部存款类机构",
+    sub:"降准的适用对象：所有要交法定准备金的机构，但<b>不是同一个比率</b>",
+    d:"覆盖范围确实是全体——只要吸收存款、要向央行交法定准备金，就在降准名单里，所以它比再贷款、PSL 那种「只给政策行」的定向工具宽得多。但「全都在内」不等于「都一样」：2019 年起央行把存准率改成<b>三档两优</b>，机构先按规模和经营范围分档，再按普惠金融完成度给额外优惠。<br>所以「降准 0.5 个百分点」是<b>各家在自己那一档上往下调 0.5</b>，不是所有人调到同一个数——档与档之间的差距被<b>保留</b>下来。",
+    rows:[
+      ["第一档 · 基准","大型银行 6 家：工、农、中、建、交、邮储。跨省经营、系统重要性最高，存准率也最高"],
+      ["第二档 · 中型","股份制银行、跨省经营的城商行、<b>在华法人外资银行</b>。比第一档低一截"],
+      ["第三档 · 县域","农商行、农信社、农村合作银行、村镇银行（约 4000 家）。最低，目的是把资金留在县域、支农支小"],
+      ["两优 · 定向","普惠金融定向降准：小微、涉农贷款投放达标，可在自己档位上再降 0.5～1.5 个百分点。达不达标，同一档里的两家银行水平可能不同"],
+      ["缴纳基数","按旬内<b>日均</b>存款计算（平均法），不是某一天的余额"],
+      ["哪些存款要交","一般存款要交；<b>同业存款、财政存款不交</b>；保证金存款按类型分步纳入"],
+      ["考核方式","旬内日均达标即可，允许期间临时低于法定线，不必天天足额"],
+      ["准备金利率","法定准备金约 1.6%、超额准备金 0.35%，这一项<b>所有机构一样</b>"]
+    ],
+    note:"所以「降准」两个字对不同银行的实际效果并不相同：大行降 0.5 释放的钱多，小行降 0.5 释放的钱少，可小行的存准率本来就低——政策是有意往县域和小微倾斜的。真正一视同仁的只有一件事：钱到了银行账上之后，往哪儿流由银行自己决定。"}
+];
+
+/* ---------- 招标机制 ---------- */
+const AUCTION = [
+  { k:"招标", d:"央行把「我借出多少钱、借多久」挂出来，让几十家机构同时报价，按事先公布的规则分配。跟拍卖会一个道理，只不过拍的是钱的价格——谁报得让央行划算，谁先拿到。" },
+  { k:"数量招标", d:"利率由央行定死，机构只报「我要多少」。要的总量超过投放量，就按比例分配。→ 7 天逆回购过去走这条（2026.11 起改为利率招标）。价格央行说了算，所以它能当政策利率。" },
+  { k:"利率招标", d:"金额由央行定死，机构报「我要多少、要什么价」。央行从报价最优的开始分配，分完为止。→ 买断式逆回购走这条：价格是市场报出来的。" },
+  { k:"单一价位中标", d:"所有中标机构按同一个利率成交（通常取最后一笔成交的边际利率）。也叫荷兰式。→ 早期 MLF 用过。" },
+  { k:"多重价位中标", d:"各按各报的利率成交，报得优的先拿。也叫美式。→ MLF 2025 年 3 月起改成这个，价格不再由央行一口价宣布，政策利率属性随之淡出。" }
+];
+/* ============================ 节点 ============================ */
+const NODES = [
+  { id:"off",  x:240,  y:120, w:240, h:100, tone:"cross",
+    title:"境外 / 离岸", sub:"CNH · 跨境结算",
+    sub2:"离岸价差是先行的压力表",
+    role:[
+      "香港、伦敦的离岸人民币不受境内管制，CNH 与 CNY 的价差往往先于官方表态反映压力。",
+      "跨境这条管子决定的是央行「被动投放」这条渠道的粗细，不是 M2 的大小。它比 2014 年以前细得多——因为企业不结汇了，也因为央行改用了主动工具。"
+    ]},
+  { id:"pbc",  x:830,  y:120, w:320, h:100, tone:"base",
+    title:"中央银行", sub:"基础货币的唯一源头",
+    sub2:"只和金融机构做对手方",
+    role:[
+      "资产端即投放渠道：外汇占款、对政府债权、对其他存款性公司债权（逆回购、MLF、买断式逆回购、PSL、再贷款）。",
+      "负债端即钱的形式：流通中现金、准备金存款、政府存款、央票。政府存款不在「储备货币」里——这一条决定了税收和发债为什么是抽水。"
+    ]},
+  { id:"mof",  x:1440, y:120, w:290, h:100, tone:"fiscal",
+    title:"财政", sub:"体系的第二个水位调节器",
+    sub2:"政府存款是央行的负债",
+    role:[
+      "收税＝抽水，支出＝放水，发债＝抽水，把钱花出去＝放水。",
+      "所以「财政发力」看的从来不是发行规模，是支出进度。发行 1 万亿而资金躺在国库，对流动性是负贡献。",
+      "《人民银行法》第 29 条：不得直接认购、包销国债，只能在二级市场买卖。"
+    ]},
+  { id:"mkt",  x:1440, y:360, w:290, h:110, tone:"bond",
+    title:"债券市场", sub:"同时干三件事",
+    sub2:"融资 / 抵押品 / 定价",
+    role:[
+      "① 融资：政府债与信用债替实体借钱。② 抵押品：国债可反复质押做回购，层层加杠杆，这是「周转速度」被放大的地方。",
+      "③ 定价：国债收益率曲线是社会无风险利率锚，决定信用利差、贷款利率、股票贴现率。它不只是融资场所，是定价场所。"
+    ]},
+  { id:"bank", x:830,  y:420, w:360, h:130, tone:"create",
+    title:"银行体系", sub:"存款货币在这里被创造",
+    sub2:"五道闸：准备金·资本·流动性·审慎·风险偏好",
+    role:[
+      "一笔贷款发放＝资产＋贷款、负债＋存款。银行不需要先有这笔存款，只需要有准备金和资本支撑这笔资产。",
+      "还本时两者同时注销，货币被消灭。整个体系的扩张和收缩，就藏在这一借一还的记账里。",
+      "跨行支付不是搬钱：准备金在央行账户间划转，一笔转账只是账本上同时记两笔。"
+    ],
+    deep:[
+      { h:"准备金是什么", b:[
+        '商业银行存在央行账上的钱，加上一点点库存现金。它是<b>银行的资产、央行的负债</b>：不能拿去放贷，也不是给储户取的——绝大部分只是一串记在央行账本上的数字。',
+        '<div class="rztree">' +
+          '<div class="rz1"><b>基础货币</b><span>央行的负债，由它主动投放</span></div>' +
+          '<div class="rz2"><i style="background:#4d8dff"></i>流通中现金 M0<em>老百姓和企业口袋里的钞票</em></div>' +
+          '<div class="rz2"><i style="background:#34d17a"></i>准备金<em>银行存在央行的钱</em></div>' +
+          '<div class="rz3"><i style="background:#34d17a"></i><b>法定准备金</b><em>按存款比例必须交，锁死不能动</em></div>' +
+          '<div class="rz3"><i style="background:#22d3ee"></i><b>超额准备金</b><em>自愿多存的，可随时动用</em></div>' +
+        '</div>'
+      ]},
+      { h:"它解决三个问题", b:[
+        '<b style="color:#e8eefc">① 支付清算的最终手段。</b>你从 A 行转 1 万到 B 行，钞票没有动，动的是央行账本上两笔分录：A 的准备金 −1 万，B 的 +1 万。准备金不够，转账就过不去——这才是「钱紧」最物理的形态。',
+        '<b style="color:#e8eefc">② 货币创造的闸门。</b>银行放贷凭空造存款，但每笔存款都要按比例补准备金，还要应付提现和跨行支付。准备金总量决定了整个体系能扩张到多大——它就是货币乘数的分母。',
+        '<b style="color:#e8eefc">③ 短端利率的锚。</b>银行之间互相借的，就是超额准备金（质押回购市场）。超额准备金多，借钱容易，DR007 就低；少了，利率被顶上去。所以央行调准备金供给，等于在调短端利率。'
+      ]},
+      { h:"三个常见的误解", b:[
+        '<b style="color:#e8eefc">「银行把存款的一部分留起来当准备金」——顺序反了。</b>银行是先放贷创造出存款，再为这笔存款补足准备金；准备金来自央行（逆回购、MLF、外汇占款），不是从存款里切一块。',
+        '<b style="color:#e8eefc">「准备金是放在金库里的钞票」——不是。</b>绝大部分是央行账本上的数字。准备金是「银行在央行的存款」，和「央行发行的现金」是两回事。',
+        '<b style="color:#e8eefc">准备金 ≠ 居民存款。</b>准备金是银行的资产，居民存款是银行的负债，两者在资产负债表的两端，方向正好相反。'
+      ]},
+      { h:"那降准到底做了什么", b:[
+        '降准不改变准备金总量，只是把「法定」那一栏挪到「超额」那一栏——同一笔钱换个抽屉。基础货币一分没多，变的是能动用的比例，所以乘数变大。',
+        '这也解释了为什么降准常被叫作「放水」却并不等于放水：<b style="color:#e8eefc">它松开的是闸门，不是水源。</b>'
+      ]}
+    ]},
+  { id:"nbfi", x:1440, y:600, w:290, h:110, tone:"shadow",
+    title:"非银 / 影子银行", sub:"理财·货基·保险·信托·资管",
+    sub2:"改的是钱的位置和速度",
+    role:[
+      "非银本身不直接创造存款货币，它调动的是既有存款。但当它的资金最终来自银行体系（同业、理财对接）并用于放贷时，全系统的存款货币是增加的——这就是「影子银行创造货币」。",
+      "所以：创造主体始终是银行的资产负债表（含表外和同业链条），非银是通道，不是创造者。"
+    ]},
+  { id:"hh", x:665, y:790, w:250, h:150, tone:"create",
+    title:"居民", sub:"工资 · 消费 · 存款 · 房贷",
+    sub2:"收入在这里变成支出或存款",
+    role:[
+      "居民的收入主要来自企业发的工资，花出去又流回企业——所以居民和企业之间是一条双向的管子，不是两个孤岛。图上 ⑱ 是工资（企业 → 居民），⑲ 是消费（居民 → 企业）。",
+      "居民手里的钱只有三个去处：存款（留在 M2 里）、买理财或货基（变成非银同业存款，仍在 M2 里）、还房贷（还本时贷款和存款同时注销，货币真的消失）。",
+      "所以居民的资产负债表状态，决定钱是继续转手还是停在存款里——「资产负债表衰退」说的就是所有人同时选择还债、不借钱、不花钱，货币就停在那儿不动了。"
+    ]},
+  { id:"firm", x:990, y:790, w:260, h:150, tone:"create",
+    title:"企业", sub:"贷款 · 投资 · 出口 · 用工",
+    sub2:"也在发行自己的货币",
+    role:[
+      "企业是信贷的主要借款人：流动资金贷款、项目贷、票据贴现，每一笔都在银行账上凭空造出一笔存款。",
+      "企业之间相互欠款（商票、应收账款），本质上是在互相发行货币——所以「三角债」会同时表现为「钱紧」：缺的是支付手段，不是钞票。",
+      "企业的投资意愿决定它借不借钱；不借钱，货币就造不出来。这就是「宽货币、紧信用」卡住的那一环——央行把水放到了银行间，但没人愿意接。"
+    ],
+    deep:[
+      { h:"企业间的钱，不在 M2 里", b:[
+        '商票、应收账款、供应链票据，是企业之间自己开的「欠条」。它们在圈内可以背书转让、可以去银行贴现，实实在在起到货币的作用，但<b>不计入 M2</b>——M2 只统计银行体系的存款。',
+        '所以听到「企业缺钱」，要先分清缺的是哪一种：<b style="color:#e8eefc">是银行的存款不够（M2 层面），还是企业之间的欠条转不动（商业信用层面）。</b>三角债属于后者——票据还在，只是没人肯收。',
+        '这也解释了一件事：为什么 M2 增速不低，企业却还是喊紧？因为企业真正用来付款的东西，有一部分根本不在这张图的账上。'
+      ]}
+    ]}
+];
+
+/* ============================ 箭头 ============================ */
+const EDGES = [
+  { id:"e1", num:1, kind:"cross", d:"M 360 120 L 670 120",
+    badge:[436,120], labels:[{x:516,y:100,t:"外汇占款：结汇 → 投放准备金",a:"middle"}],
+    title:"境外 → 央行：外汇占款",
+    flow:["出口收汇：银行买入外汇、给企业记一笔存款（这里就创造了货币）","银行再把外汇卖给央行，换回准备金"],
+    tacc:[{who:"央行",l:"资产 外汇 ＋100",r:"负债 准备金 ＋100"},
+          {who:"银行",l:"资产 准备金 ＋100",r:"负债 企业存款 ＋100"}],
+    impact:[["M2","+100","up"],["基础货币","+100","up"]],
+    one:"这是 2014 年以前基础货币的主渠道：被动、不由自己控制。它决定的是「基础货币从哪来」，不是「M2 有多少」——M2 的大头始终是银行信贷。现在「藏汇于民」削弱了它：企业不结汇，这条管子就细了。",
+    deep:[
+      '<table class="dtab"><tr><th>项目</th><th>谁创造</th><th>和外汇的关系</th></tr>' +
+      '<tr><td><b>M2</b><span>存款货币</span></td><td>商业银行放贷</td><td>基本无关：贷款创造存款，还本消灭存款</td></tr>' +
+      '<tr><td><b>基础货币</b><span>准备金＋现金</span></td><td>央行的资产端</td><td>2003–2014 年外汇占款是主渠道，现在是逆回购 / MLF / PSL</td></tr></table>',
+      '<div class="keybox">央行买外汇不是「拿外汇做抵押发行人民币」，而是：<b>资产端多了一笔外汇，负债端凭空记一笔准备金</b>。资产负债表恒等式决定了买汇必然创造基础货币——是「买汇」这个动作在印钱，不是「有外汇」这个前提在印钱。</div>',
+      '<div class="tl">' +
+        '<div class="tl-r"><span class="tl-y">1994 以前</span><div class="tl-b"><b>再贷款</b><em>央行直接给专业银行（工行、农行这些）放信用贷款，支持粮棉油收购和国企流动资金。和外汇没有关系。</em></div></div>' +
+        '<div class="tl-r"><span class="tl-y">1994–2014</span><div class="tl-b"><b>外汇占款</b><em>结售汇制度 + 央行守汇率，被动买入外汇、投放准备金。</em></div></div>' +
+        '<div class="tl-r"><span class="tl-y">2015 至今</span><div class="tl-b"><b>对其他存款性公司债权</b><em>逆回购、MLF、PSL、买断式逆回购主动投放。</em></div></div>' +
+      '</div>',
+      '<b style="color:#e8eefc">当时几乎没有外汇。</b>1978 年外汇储备 1.67 亿美元，1993 年底 212 亿美元——不够三个月进口。所以这套体系不是「先有外汇再发钞」，而是反过来：1994 年汇率并轨（官方汇率 5.80 并到 8.70）、建起银行间外汇市场和结售汇制度之后，企业必须把外汇卖给银行、银行再卖给央行；央行为了守住汇率，被动地把多出来的外汇全买下来，每买一笔就记一笔准备金负债。',
+      '真正让这条管子变粗的是 2001 年入世后的双顺差：外汇储备从 2121 亿美元涨到 2014 年的 3.99 万亿，外汇占款一度是基础货币增量的全部甚至更多——因为别的投放渠道在净回笼。',
+      '被动投放的副作用必须对冲：央行发央票、把存款准备金率从 6% 一路提到 21.5%（大型银行 2011 年的峰值），把多出来的流动性锁回去。那一轮的高存准率，本质是外汇占款的对冲产物，不完全是审慎监管。',
+      '2014 年 5 月外汇占款见顶（约 27 万亿元），之后资本流出、这条管子反转，央行失去被动投放渠道，才转向逆回购、MLF、PSL 主动投放——这就是「② 央行投放工具箱」那一节为什么重要。',
+      '<b style="color:#e8eefc">回到问题本身：外汇占款决定的是「基础货币从哪来」，不是「M2 有多少」。</b>M2 的大头始终是银行信贷创造的存款。把这两层混成一层，就会得出「中国的钱是按外汇比例印的」——这个说法不成立。'
+    ] },
+
+  { id:"e2", num:2, kind:"base", d:"M 790 170 L 790 355",
+    badge:[790,222], labels:[{x:776,y:266,t:"投放：逆回购 / MLF / 再贷款",a:"end"}],
+    title:"央行 → 银行：投放准备金",
+    flow:["六件工具，期限从 7 天到 5 年不等（左侧工具卡片）","共同点：都是「央行对金融机构的债权」，都不直接对实体放款"],
+    tacc:[{who:"央行",l:"资产 对其他存款性公司债权 ＋100",r:"负债 准备金存款 ＋100"},
+          {who:"银行",l:"资产 准备金 ＋100",r:"负债 向央行借款 ＋100"}],
+    impact:[["M2","0","flat"],["基础货币","+100","up"],["准备金","+100","up"]],
+    one:"钱先落在银行间市场，还没到实体。这一步只决定「有没有水」，不决定「水去哪」。用哪件工具、给多长期限，才决定这笔水会不会流到工地上去。降准不属于这一步：它不增加基础货币，只是把法定准备金转成超额准备金，动的是乘数的分母。" },
+
+  { id:"e3", num:3, kind:"base", d:"M 880 355 L 880 170", dash:true,
+    badge:[880,330], labels:[{x:894,y:258,t:"回笼：到期不续作 / 正回购",a:"start"}],
+    title:"银行 → 央行：回笼",
+    flow:["逆回购到期、MLF 到期不续作、发行央票"],
+    tacc:[{who:"央行",l:"资产 对其他存款性公司债权 −100",r:"负债 准备金存款 −100"},
+          {who:"银行",l:"资产 准备金 −100",r:"负债 向央行借款 −100"}],
+    impact:[["M2","0","flat"],["基础货币","−100","down"]],
+    one:"回笼只是把水抽回池子，不直接减少 M2；但银行少了准备金，可贷空间随之收窄。" },
+
+  { id:"e4", num:4, kind:"fiscal", d:"M 990 120 L 1295 120", dash:true, noHead:true,
+    badge:[1142,120], labels:[{x:1142,y:100,t:"政府存款账户（同一笔钱的两端）",a:"middle"}],
+    title:"央行 ↔ 财政：政府存款",
+    flow:["在央行的资产负债表上是负债","在财政那里是存款——同一笔钱的两个视角"],
+    tacc:[{who:"央行",l:"—",r:"负债 政府存款"},
+          {who:"财政",l:"资产 在央行存款",r:"—"}],
+    impact:[["自身","不产生变动","flat"]],
+    one:"这条线不是流量，是一个账户。正因为财政的钱记在央行负债上，收税和发债才能直接压低基础货币。" },
+
+  { id:"e5", num:5, kind:"create", d:"M 760 485 L 760 715",
+    badge:[760,530], labels:[{x:746,y:566,t:"放贷：资产＋贷款 / 负债＋存款",a:"end"}],
+    title:"银行 → 居民：放贷（按揭 / 消费贷）",
+    flow:["银行资产端 ＋ 一笔贷款","银行负债端 ＋ 一笔存款——货币在这一瞬间被创造"],
+    tacc:[{who:"银行",l:"资产 按揭贷款 ＋100",r:"负债 居民存款 ＋100"}],
+    impact:[["M2","+100","up"],["基础货币","0","flat"]],
+    one:"货币是记账记出来的：银行不需要先有这笔存款。约束不是「有没有钱」，是准备金、资本充足率、流动性和银行自己的风险偏好。存款是银行资产的镜像——多数是贷款，也可以是债券、外汇占款或对非银债权。企业贷款用的是完全同一套记账，只是对手方换成企业（见 ⑥ ⑦ 的还本付息）。" },
+
+  { id:"e6", num:6, kind:"create", d:"M 900 715 L 900 485",
+    badge:[900,690], labels:[{x:914,y:612,t:"还本：贷款− 存款−",a:"start"}],
+    title:"企业 → 银行：还本（货币被消灭）",
+    flow:["企业用存款还本","银行的贷款和存款同时减少"],
+    tacc:[{who:"银行",l:"资产 贷款 −100",r:"负债 存款 −100"}],
+    impact:[["M2","−100","down"],["贷款余额","−100","down"]],
+    one:"还本同时注销一笔资产和一笔负债，货币从账本上消失。扩张和收缩都藏在这一借一还里，不在任何一张印出来的钞票上。" },
+
+  { id:"e7", num:7, kind:"create", d:"M 985 715 L 985 485",
+    badge:[985,640], labels:[{x:999,y:588,t:"付息",a:"start"}],
+    title:"企业 → 银行：付息",
+    flow:["利息从企业存款账户扣走","存款消失，变成银行的利息收入（权益）"],
+    tacc:[{who:"银行",l:"—",r:"负债 存款 −100"}],
+    impact:[["M2","−100","down"],["债务本金","不变","flat"]],
+    one:"利息不是「钱从左边口袋到右边口袋」：存款被注销、变成银行收入。所以高息债务滚动会持续抽走可支出货币。" },
+
+  { id:"e8", num:8, kind:"fiscal", d:"M 1120 790 C 1320 800 1680 748 1680 600 L 1680 262 C 1680 166 1640 120 1585 120",
+    badge:[1680,470], labels:[{x:1452,y:800,t:"税收 → 国库（抽水）",a:"middle"}],
+    title:"企业 → 财政：税收（抽水）",
+    flow:["企业存款 −，银行准备金 −","央行负债「政府存款」＋"],
+    tacc:[{who:"银行",l:"资产 准备金 −100",r:"负债 企业存款 −100"},
+          {who:"央行",l:"—",r:"负债 准备金 −100 / 政府存款 ＋100"}],
+    impact:[["M2","−100","down"],["基础货币","−100","down"],["政府存款","+100","up"]],
+    one:"税收到账那一刻，M2 和基础货币同时下降。这是真正的抽水，不是「钱换了个口袋」——政府存款不叫储备货币。" },
+
+  { id:"e9", num:9, kind:"fiscal", d:"M 1295 150 C 1240 192 1230 232 1230 690 C 1230 726 1176 744 1120 752",
+    badge:[1230,556], labels:[{x:1216,y:620,t:"财政支出（放水）",a:"end"}],
+    title:"财政 → 企业：支出（放水）",
+    flow:["政府存款 −，准备金回流银行","企业存款 ＋（工资、采购款、项目资本金）"],
+    tacc:[{who:"央行",l:"—",r:"负债 政府存款 −100 / 准备金 ＋100"},
+          {who:"银行",l:"资产 准备金 ＋100",r:"负债 企业存款 ＋100"}],
+    impact:[["M2","+100","up"],["基础货币","+100","up"],["政府存款","−100","down"]],
+    one:"发债和支出是方向相反的两件事：<b>发债</b>是把市场上的钱借进国库，钱离开银行体系，M2 减少；<b>支出</b>才是把钱放回企业和居民手里，M2 才回来。所以判断财政松不松，看的是支出进度，不是发行规模——发了 1 万亿却躺在国库不动，等于从市场抽走了 1 万亿。",
+    deepH:"为什么「化债」必须配财政支出",
+    deep:[
+      "把经济体想成一口池塘，国库是岸上的一只桶。<b>发债</b>＝拿桶从池塘里舀水，池塘水位下降；<b>支出</b>＝把桶里的水倒回池塘，水位回升。只舀不倒，池塘只会越来越浅。",
+      "为什么发债会抽水？因为国库的钱<b>不在池塘里</b>。政府的钱存在央行，叫「政府存款」——它既不是银行的存款，也不算准备金。钱一进国库，就从 M2 和银行可贷资金里<b>同时</b>消失了。要等政府把它花出去，这笔钱才回到企业和居民的账户上。",
+      "<b style=\"color:#e8eefc\">那化债是什么？</b>地方政府过去主要通过城投平台借钱搞建设，利息高、期限短，越滚越还不上。所谓「化债」（债务置换），就是政府发一批<b>利率更低、期限更长</b>的政府债，替城投把那些旧债还掉。",
+      "但注意：城投拿到这笔钱是去<b>还债</b>的，不是去修路的。钱还到银行，贷款注销，货币就跟着消失了。所以化债本身<b>不创造任何新的购买力</b>——它只是把「高息短债」换成「低息长债」，让地方喘口气、账面好看一点。买新债的如果是银行，这一步对 M2 基本中性；如果是居民或非银买，M2 还会净减少。",
+      "所以化债必须配上<b>另外的</b>财政支出：新发一笔债，真的去修路、发工资、搞项目，钱才会重新流到实体手里。只置换、不支出，就是把水舀进桶里再也不倒回去——<b>只抽水，不放水</b>。",
+      "<div class=\"keybox\">一句话：<b>发债是借钱，支出才是花钱。</b>借进来不花，等于从市场抽水；化了债不支出，只是把债务换了个马甲，实体一分钱没多拿到。</div>"
+    ] },
+
+  { id:"e10", num:10, kind:"fiscal", d:"M 1440 170 L 1440 305",
+    badge:[1440,212], labels:[{x:1456,y:256,t:"发债 → 进国库",a:"start"}],
+    title:"财政 → 债市：发债",
+    flow:["一级市场发行，银行或非银认购","发行款进国库 = 政府存款增加"],
+    tacc:[{who:"财政",l:"—",r:"负债 政府债券 ＋100"},
+          {who:"央行",l:"—",r:"负债 政府存款 ＋100（发行款）"}],
+    impact:[["M2","看谁买","flat"],["基础货币","−100","down"]],
+    one:"发行那一刻，准备金离开银行体系、进国库。要等钱花出去才放水——这中间的时滞，就是「财政存款漏损」。那到期还本呢？见下面「到期还本，算不算放水」——答案和直觉相反。",
+    deeps:[
+      { h:"到期还本，算不算放水？", b:[
+      "先说结论：<b>单笔债确实是一抽一放</b>——发行时钱进国库（抽水），到期还本时钱回市场（放水），一笔债走完，净影响是零。直觉到这一步是对的。",
+      "但问题在下一步：<b>还本的钱从哪来？</b>政府在账上几乎没有「净还本」这回事。债到期时它做的是——<b>发一笔新债，把旧债还掉</b>。这个操作有专门的名字，叫「再融资债券」，俗称借新还旧。",
+      "所以那一天的真实分录是两笔同时发生：旧债还本<b>放水 100 亿</b>，新债发行<b>抽水 100 亿</b>，相抵，<b>净影响 0</b>。池塘水位从头到尾没动过，只是债主从张三换成了李四。",
+      "那用税收还本呢？收税本身就是抽水（企业和居民的存款划进国库），然后再放水还本。一抽一放，还是零。",
+      "打个比方：你借了朋友一桶水倒进池塘，一年后要还。可桶早就空了——你只能<b>再向另一个朋友借一桶</b>来还他。池塘的水位，从头到尾没变过。这就是国债余额只增不减、市场上却没人觉得钱变多的原因。",
+      "<b style=\"color:#e8eefc\">那什么才算真的净放水？</b>只有两条路：一是<b>财政赤字</b>——新发的债<b>超过</b>到期的债，多出来那部分真的花出去了，这才是净投放；二是<b>央行直接印钱买国债</b>，也就是财政赤字货币化——这条路中国走不了，《中国人民银行法》第二十九条明令禁止央行直接认购国债。",
+      "所以判断债券发行对流动性的影响，看的是<b>净融资额（新发 − 到期）</b>，不是发行量；判断财政松不松，看的是<b>赤字率</b>，不是国债余额——余额只是历年赤字的累积。",
+      "还有一个反直觉的地方：如果国债到期真的<b>不再续发</b>、净偿还，那才是一次性的净放水——但代价是财政要勒紧裤腰带，这种情形在现实里往往和衰退一起来，而不是和宽松一起来。",
+      "<div class=\"keybox\">记住这一句：<b>本金可以永远滚下去，利息必须用真金白银的税收去付。</b>所以债务危机的引爆点从来不是「还不上本金」，是「付不起利息」。</div>"
+      ] },
+
+      { h:"那要是连利息都付不起呢？", b:[
+        "先分清一件最关键的事：借新还旧能不能接着玩，第一要看的不债务有多高，而是这笔债是<b>本币债</b>还是<b>外币债</b>——本币债是政府用自己国家的货币借的，还的时候也用自己的货币；外币债借的是美元，还的时候必须有美元。",
+        "外币债为什么会真崩？因为阿根廷没有印美元的权力。美元储备一用完，债立刻还不上，只能违约或者求 IMF 纾困。所以同样是高债务，日本债务/GDP 到 250% 也没崩，阿根廷 60% 上下的债务却崩了好几次。",
+        "本币债的政府理论上永远不会技术性违约——它总能印钱还给自己人。所以真问题不是「还不还上」，是「还的时候钱还值不值钱」。现代历史上，主权本币债的违约几乎都是<b>通过通胀完成的，不是通过赖账</b>。",
+        "真到了那一步，政府会按这个顺序出手：<br>① <b>压利率</b>（金融抑制）——让银行、保险、社保以低于市场的利率持有国债。中国长期指导存款利率，日本央行直接控制国债收益率曲线。<br>② <b>通胀稀释</b>——债还是那个数，钱变毛了。美国二战后就用这招把债务/GDP 从 120% 压到 40%。<br>③ <b>央行下场买债</b>——日本央行持有一半以上的国债。中国法律禁止一级市场直接认购，但允许二级市场买卖，2024 年起央行已经在做。<br>④ <b>债务重组</b>（真违约）——展期、降息、削本金。中国在地方层面已经发生过：城投非标违约、个别平台展期二十年。",
+        "判断债务会不会失控，经济学只看一个不等式：<b>r 和 g</b>。r 是国债利率，g 是名义 GDP 增速。<br><b>r &lt; g</b>：债务/GDP 会自己往下走，不需要财政盈余，债可以一直滚下去。<br><b>r &gt; g</b>：债务会自动膨胀，越滚越快，只能靠加税、削支出或者通胀压下来。<br>中国现在 10 年期国债利率 2% 上下，名义 GDP 增速 4% 左右——r 明显小于 g，中央债务还没有自我膨胀的机制。",
+        "但中国的压力不在中央，在地方。中央国债余额占 GDP 大约四分之一，在国际上算很低；真正绷着的是地方：法定债务五十万亿量级，隐性债务化债前约十四万亿，而城投非标的融资成本 8% 上下，是国债利率的好几倍。所以化债的核心动作是——<b>用 2% 的债换掉 8% 的债</b>。债务总额一分没少，但每年要付的利息少了一大截。这才是化债真正的意义，也解释了为什么它能救地方财政、却创造不了新需求。",
+        "<div class=\"keybox\">所以「付不起利息」从来不是一个债务数字，而是两个条件同时成立：<b>r 大于 g，而且借的不是本币。</b>中国两条都不满足。真正该盯的不是国债余额，是<b>利息支出占一般公共预算收入的比例</b>——这个数一旦开始爬坡，压利率和通胀就会来。</div>"
+      ] }
+    ] },
+
+  { id:"e11", num:11, kind:"bond", d:"M 1010 385 L 1295 335",
+    badge:[1150,360], labels:[{x:1150,y:314,t:"银行认购 / 二级买卖",a:"middle"}],
+    title:"银行 → 债市：一级认购与二级买卖",
+    flow:["认购政府债：用准备金买，准备金被抽进国库","认购信用债：资产＋债券、负债＋企业存款——和放贷一样创造货币","二级买卖：两边都是既有存款，谁也不创造货币"],
+    tacc:[{who:"银行",l:"资产 债券 ＋100",r:"负债 准备金 −100（买政府债）"},
+          {who:"央行",l:"—",r:"负债 准备金 −100 / 政府存款 ＋100"}],
+    impact:[["政府债 · M2","0","flat"],["政府债 · 基础货币","−100","down"],["信用债 · M2","+100","up"]],
+    one:"同一笔「买债」，买政府债和买信用债的货币含义完全不同：前者抽准备金、M2 不动；后者和放贷一模一样，凭空造出一笔存款。二级市场则只有所有权转移，货币总量不动。"
+     },
+
+  { id:"e12", num:12, kind:"bond", d:"M 1295 372 L 1010 422",
+    badge:[1150,404], labels:[{x:1150,y:430,t:"质押回购：抵押品加杠杆",a:"middle"}],
+    title:"债市 → 银行：质押回购",
+    flow:["拿国债质押融出资金，同一笔券可以被反复质押","一层套一层，杠杆就上去了"],
+    tacc:[{who:"银行",l:"资产 准备金 ＋",r:"负债 回购融入 ＋"}],
+    impact:[["M2","0","flat"],["周转速度","↑","up"]],
+    one:"放大的是周转速度，不是货币存量。这是「货币流通」里最容易被忽略的那一半——M 没变，V 上去了。" },
+
+  { id:"e13", num:13, kind:"bond", d:"M 1370 415 L 1370 545",
+    badge:[1370,480], labels:[{x:1386,y:498,t:"非银认购 / 交易",a:"start"}],
+    title:"债市 → 非银：非银认购",
+    flow:["居民存款 → 非银存款（M2 内部转移）","非银拿这笔钱买债 → 政府存款＋，准备金−"],
+    tacc:[{who:"非银",l:"资产 债券 ＋100",r:"—"},
+          {who:"央行",l:"—",r:"负债 准备金 −100 / 政府存款 ＋100"}],
+    impact:[["M2","−100","down"],["基础货币","−100","down"]],
+    one:"非银买债用的是存量存款，M2 直接少一块。同样是发债，谁买，决定冲击落在 M2 还是准备金上。" },
+
+  { id:"e14", num:14, kind:"shadow", d:"M 1010 452 C 1110 470 1200 530 1295 588",
+    badge:[1092,478], labels:[{x:1140,y:462,t:"同业 / 委外 / 理财对接",a:"start"}],
+    title:"银行 → 非银：委外与同业通道",
+    flow:["银行把资金交给非银：委外、同业理财对接","银行资产从准备金变成对非银债权，M2 不动"],
+    tacc:[{who:"银行",l:"资产 对非银债权 ＋100 / 准备金 −100",r:"—"}],
+    impact:[["M2","0","flat"],["准备金","−100","down"]],
+    one:"钱从表内挪进表外通道，总量没变，但监管看不见了。反过来，非银把钱存回银行时，银行负债就从居民存款变成同业存款：更贵、更不稳、更容易跑——这是 2024 年那轮存款搬家的直接后果。" },
+
+  { id:"e15", num:15, kind:"shadow", d:"M 1440 655 C 1440 702 1330 776 1150 790 C 1140 791 1130 791 1120 790",
+    badge:[1330,762], labels:[{x:1250,y:812,t:"影子银行：信托 / 委托 / 非标",a:"middle"}],
+    title:"非银 → 企业：影子银行放贷",
+    flow:["非银用银行的同业资金放信托贷款、委托贷款","企业的存款增加，但银行表内贷款不动"],
+    tacc:[{who:"非银",l:"资产 信托贷款 ＋100",r:"—"},
+          {who:"企业",l:"资产 存款 ＋100",r:"负债 借款 ＋100"}],
+    impact:[["M2","+100","up"],["准备金","不占用","flat"],["资本","不占用","flat"]],
+    one:"影子银行照样在创造货币：只要最终资金来自银行体系，它就是在创造存款，只是绕开了准备金和资本约束——这正是 2018 年资管新规要堵的口子。"
+     },
+
+  { id:"e16", num:16, kind:"shadow", d:"M 750 865 C 850 950 1230 900 1295 630",
+    badge:[1168,816], labels:[{x:1184,y:848,t:"买理财 / 货基（存款搬家）",a:"start"}],
+    title:"居民 → 非银：存款搬家",
+    flow:["居民存款 → 非银同业存款","两者都还在 M2 里"],
+    tacc:[{who:"居民",l:"—",r:"负债 存款 −100"},
+          {who:"非银",l:"资产 同业存款 ＋100",r:"—"}],
+    impact:[["M2 总量","0","flat"],["M2 结构","变","flat"]],
+    one:"「搬家」主要改的是 M2 的构成和银行负债的稳定性，不是总量——非银同业存款从 2011 年起就计入 M2。只有理财把钱投到债券等非存款资产，M2 才真降。"
+     },
+
+  { id:"e17", num:17, kind:"cross", d:"M 300 170 C 392 282 502 342 650 380",
+    badge:[468,292], labels:[{x:392,y:250,t:"出口收汇（结汇）",a:"end"}],
+    title:"境外 → 银行：出口收汇与结汇",
+    flow:["企业把外汇卖给银行，银行给它记一笔人民币存款","这一次的资产是外汇，不是贷款"],
+    tacc:[{who:"银行",l:"资产 外汇 ＋100",r:"负债 企业存款 ＋100"}],
+    impact:[["M2","+100","up"]],
+    one:"这是「资产是外汇」而不是「资产是贷款」的货币创造。所以外汇大幅流入会同时推高 M2 和基础货币——这就是 2005–2014 年的故事。" },
+
+  { id:"e18", num:18, kind:"create", d:"M 858 764 L 792 764",
+    badge:[825,764], labels:[{x:825,y:742,t:"工资",a:"middle"}],
+    title:"企业 → 居民：工资（劳动报酬）",
+    flow:["企业发工资，钱从企业存款划到居民存款","跨行的话，还要在央行账户上划一笔准备金"],
+    tacc:[{who:"企业",l:"—",r:"负债 银行存款 −100"},
+          {who:"居民",l:"资产 银行存款 ＋100",r:"—"}],
+    impact:[["M2","0","flat"],["M2 结构","企业 → 居民","flat"]],
+        one:"工资既不创造也不消灭货币，它只是把同一笔存款从企业的账户挪到居民的账户——M2 一分没变。但它极其重要：<b>它是居民几乎全部购买力的来源</b>。企业不招人、不发钱，居民的存款就只出不进，消费起不来；消费起不来，企业又更不招人。所以「稳就业」在货币层面就等于「保住这条管子」。" },
+
+  { id:"e19", num:19, kind:"create", d:"M 792 820 L 858 820",
+    badge:[825,820], labels:[{x:825,y:842,t:"消费",a:"middle"}],
+    title:"居民 → 企业：消费（钱流回去）",
+    flow:["居民买房、买货、买服务，钱回流企业","同样只是存款在企业与居民之间换手"],
+    tacc:[{who:"居民",l:"—",r:"负债 银行存款 −100"},
+          {who:"企业",l:"资产 银行存款 ＋100",r:"—"}],
+    impact:[["M2","0","flat"]],
+    one:"消费是工资的反向流动：居民花出去、企业收回来，下一轮才有钱再发工资。这个闭环转得顺，同样的 M2 就能支撑更多产出；转不动，钱就堆在居民存款里——这就是「内需不足」在账上的样子。" },
+
+  { id:"e20", num:20, kind:"create", d:"M 700 715 L 700 485",
+    badge:[700,690], labels:[{x:686,y:612,t:"还本付息（按揭）",a:"end"}],
+    title:"居民 → 银行：还本付息",
+    flow:["每月还款从居民的存款账户扣走","本金部分：贷款和存款同时注销，货币被消灭","利息部分：存款消失，变成银行的利息收入"],
+    tacc:[{who:"银行",l:"资产 按揭贷款 −100",r:"负债 居民存款 −100"},
+          {who:"银行",l:"—",r:"权益 利息收入 ＋"}],
+    impact:[["M2","−（本金＋利息）","down"],["贷款余额","−100","down"]],
+    one:"居民按揭和企业贷款在记账上完全一样：还本把资产和负债同时注销，货币消失；付息让存款变成银行收入，也是消失。区别只在对手方是谁。这也解释了为什么「提前还贷」会直接压缩 M2——它不是在转移钱，是在注销钱。" }
+];
+
+/* ============================ 状态 ============================ */
+let focusId = null, pinned = null, currentKind = "all";
+let demo = { running:false, paused:true, timer:null, i:0 };
+
+const svg = document.getElementById("canvas");
+const panel = document.getElementById("panel");
+
+/* ============================ 工具 ============================ */
+function el(tag, attrs, kids){
+  const n = document.createElementNS(SVGNS, tag);
+  if (attrs) for (const k in attrs) if (attrs[k] !== undefined && attrs[k] !== null) n.setAttribute(k, attrs[k]);
+  if (kids) kids.forEach(c => c && n.appendChild(c));
+  return n;
+}
+function txt(x, y, str, cls, anchor){
+  const t = el("text", {x, y, class:cls});
+  if (anchor) t.setAttribute("text-anchor", anchor);
+  t.textContent = str;
+  return t;
+}
+const $ = id => document.getElementById(id);
+
+/* ============================ 构建 SVG ============================ */
+function buildDefs(){
+  const defs = el("defs");
+  Object.keys(C).forEach(k => {
+    const m = el("marker", {
+      id:"arw-"+k, viewBox:"0 0 10 10", refX:"8.6", refY:"5",
+      markerWidth:"7", markerHeight:"7", orient:"auto-start-reverse"
+    });
+    m.appendChild(el("path", {d:"M0,0.6 L10,5 L0,9.4 z", fill:C[k]}));
+    defs.appendChild(m);
+  });
+  const glow = el("filter", {id:"soft", x:"-40%", y:"-40%", width:"180%", height:"180%"});
+  glow.appendChild(el("feGaussianBlur", {stdDeviation:"6", result:"b"}));
+  const mg = el("feMerge");
+  mg.appendChild(el("feMergeNode", {in:"b"}));
+  mg.appendChild(el("feMergeNode", {in:"SourceGraphic"}));
+  glow.appendChild(mg);
+  defs.appendChild(glow);
+  svg.appendChild(defs);
+}
+
+function buildGrid(){
+  const g = el("g", {opacity:".5"});
+  const pat = el("pattern", {id:"dots", width:"34", height:"34", patternUnits:"userSpaceOnUse"});
+  pat.appendChild(el("circle", {cx:"1.2", cy:"1.2", r:"1.1", fill:"rgba(255,255,255,.055)"}));
+  const defs = svg.querySelector("defs");
+  defs.appendChild(pat);
+  g.appendChild(el("rect", {x:0, y:0, width:1760, height:980, fill:"url(#dots)"}));
+  svg.appendChild(g);
+}
+
+function buildAnnotation(){
+  const g = el("g", {transform:"translate(100,724)"});
+  g.appendChild(el("rect", {
+    width:280, height:132, rx:14, fill:"rgba(77,141,255,.045)",
+    stroke:"rgba(77,141,255,.22)", "stroke-dasharray":"5 5"
+  }));
+  g.appendChild(txt(18, 30, "货币乘数", "n-sub"));
+  g.appendChild(txt(18, 58, "m = (1+c) / (rr + e + c)", "n-sub2"));
+  g.appendChild(txt(18, 82, "c 现金比 · rr 法定 · e 超额", "n-sub2"));
+  g.appendChild(txt(18, 110, "降准降的是分母，不是分子", "n-sub2"));
+  svg.appendChild(g);
+}
+
+function buildEdges(){
+  const gEdges = el("g", {id:"edges"});
+  EDGES.forEach(e => {
+    const g = el("g", {class:"edge", "data-id":e.id, "data-kind":e.kind});
+    g.appendChild(el("path", {class:"halo", d:e.d}));
+    const line = el("path", {class:"line", d:e.d});
+    if (!e.noHead) line.setAttribute("marker-end", "url(#arw-" + e.kind + ")");
+    if (e.dash) line.setAttribute("stroke-dasharray", "7 6");
+    g.appendChild(line);
+    gEdges.appendChild(g);
+  });
+  svg.appendChild(gEdges);
+
+  const gLabels = el("g", {id:"labels"});
+  EDGES.forEach(e => {
+    const g = el("g", {"data-id":e.id, "data-kind":e.kind});
+    (e.labels || []).forEach(l => {
+      g.appendChild(txt(l.x, l.y, l.t, "elabel", l.a));
+    });
+    gLabels.appendChild(g);
+  });
+  svg.appendChild(gLabels);
+}
+
+/* ---------- 工具卡片（直接画在图上） ---------- */
+function buildToolbox(){
+  const W = 310, H = 392;
+  const g = el("g", {class:"tbox", transform:"translate(92,316)"});
+  g.appendChild(el("rect", {class:"tbg", width:W, height:H, rx:14,
+    fill:"rgba(77,141,255,.05)", stroke:"rgba(77,141,255,.28)", "stroke-dasharray":"5 5"}));
+  g.appendChild(txt(16, 28, "② 央行投放工具箱", "tbox-t"));
+  g.appendChild(txt(16, 48, "同样叫「投放」，六件工具差别极大", "tbox-s"));
+  TOOLS.forEach((t, i) => {
+    const y = 74 + i * 43;
+    g.appendChild(el("rect", {x:16, y:y - 1, width:3, height:31, rx:1.5, fill:C[t.kind], opacity:".85"}));
+    const nm = txt(26, y + 11, t.name, "tbox-n");
+    nm.setAttribute("fill", C[t.kind]);
+    g.appendChild(nm);
+    g.appendChild(txt(W - 16, y + 11, t.tag, "tbox-g", "end"));
+    g.appendChild(txt(26, y + 28, t.short, "tbox-r"));
+  });
+  g.appendChild(el("rect", {x:16, y:330, width:W - 32, height:1, fill:"rgba(255,255,255,.14)"}));
+  g.appendChild(txt(16, 348, "价格型只有逆回购；降准只调乘数，不投放", "tbox-r"));
+  g.appendChild(txt(16, 364, "质押＝券押在央行；买断＝卖给央行，能再用", "tbox-r"));
+  const lk = txt(W - 16, 384, "点开看对比 →", "tbox-g", "end");
+  lk.setAttribute("fill", "#9dc0ff");
+  g.appendChild(lk);
+  g.addEventListener("click", ev => { ev.stopPropagation(); showTools(); });
+  svg.appendChild(g);
+}
+
+/* ---------- 放水 / 抽水 ---------- */
+const WATER = {
+  out: {
+    title:"放水：钱从哪几个口子进来", lead:"共 6 根。央行投 2 根、银行造 3 根、财政 1 根。真正决定 M2 大小的是银行那 3 根——央行只管源头的水量。注意 ⑱ 工资、⑲ 消费也是「钱变多」的观感来源，但它们只是搬家，不算放水。",
+    groups:[
+      { g:"央行投放基础货币", items:[
+        ["e2","投放准备金","逆回购 / MLF / PSL / 再贷款。这是源头的放水：基础货币直接增加，银行可用的钱变多。"],
+        ["e1","外汇占款","央行买外汇、付出人民币。被动投放，2003–2014 年的主渠道。"]]},
+      { g:"银行创造存款", items:[
+        ["e5","放贷（按揭 / 消费贷）","资产端贷款、负债端存款同时记。M2 凭空增加——这是最大的一口井。企业贷款是同一套记账。"],
+        ["e17","出口收汇","银行买外汇、给企业记一笔人民币存款。和放贷同理，只是资产端是外汇。"],
+        ["e15","影子银行放贷","信托贷款、委托贷款。银行表内贷款没动，M2 照样增加。"]]},
+      { g:"财政把钱花出去", items:[
+        ["e9","财政支出","政府存款变成企业 / 居民存款。M2 增加，银行准备金回流。"]]}
+    ]},
+  in: {
+    title:"抽水：钱从哪几个口子走掉", lead:"共 8 根。央行收 1 根、信用消灭 3 根、财政抽 4 根。财政占了一半以上——这就是为什么「财政发力」要盯支出进度，不能只看发行规模。",
+    groups:[
+      { g:"央行收回流动性", items:[
+        ["e3","到期回笼 / 央票","逆回购、MLF 到期不续作，或央行发央票。准备金被收回。"]]},
+      { g:"信用被消灭", items:[
+        ["e6","企业还本","贷款和存款同时注销。货币被消灭——这是最容易被忽略的抽水。"],
+        ["e7","企业付息","利息从存款划到银行，存款消失、变成银行收入。同样是货币消灭。"],
+        ["e20","居民还本付息","按揭月供同样在消灭货币。所以「提前还贷」会直接压缩 M2。"]]},
+      { g:"财政抽走", items:[
+        ["e8","缴税","企业存款划进国库，变成央行负债里的「政府存款」。M2 直接减少。"],
+        ["e10","发债","政府发债，发行款进国库。银行体系少了等额准备金。"],
+        ["e11","银行认购政府债","用准备金买债，准备金被抽进国库。M2 不变，但银行能用的钱少了。"],
+        ["e13","非银买政府债","居民存款 → 非银存款 → 国库。钱最终离开银行体系。"]]}
+    ]}
+};
+const WATER_NOTE = "④ 国库账户、⑫ 质押回购、⑭ 委外、⑯ 存款搬家、⑱ 工资、⑲ 消费——这六根只是换手或换形式，总量不变：国库账户是同一笔钱的两个视角；质押回购和委外只是在银行体系内转移准备金；存款搬家是 M2 内部从居民存款换成非银存款；工资和消费只是在企业与居民之间挪账户。点开各自能看分录。";
+function edgeNum(id){ const e = EDGES.find(x => x.id === id); return e ? e.num : "·"; }
+function focusWater(kind){
+  const keep = new Set();
+  WATER[kind].groups.forEach(g => g.items.forEach(it => keep.add(it[0])));
+  svg.querySelectorAll("[data-id]").forEach(el => {
+    const isNode = el.classList.contains("node");
+    const id = el.getAttribute("data-id");
+    el.classList.remove("dim", "dimmed", "on");
+    if (isNode){ el.classList.add("dim"); return; }
+    if (keep.has(id)) el.classList.add("on"); else el.classList.add("dimmed");
+  });
+}
+function toggleWater(kind){
+  const pid = kind === "out" ? "waterPanelOut" : "waterPanelIn";
+  if ($(pid)){ clearFocus(); panelHome(); return; }
+  showWater(kind);
+}
+function showWater(kind){
+  const ch = document.querySelector('.chip[data-kind="all"]');
+  if (ch && !ch.classList.contains("on")){
+    if (ch.click) ch.click(); else if (ch.dispatch) ch.dispatch("click");
+  }
+  const w = WATER[kind];
+  const pid = kind === "out" ? "waterPanelOut" : "waterPanelIn";
+  focusWater(kind);
+  const groups = w.groups.map(function(g){
+    return '<div class="wg"><div class="wg-t">' + g.g + '</div>' +
+      g.items.map(function(it){
+        return '<div class="wi" id="wi' + it[0] + '">' +
+          '<b class="wi-n">' + edgeNum(it[0]) + '</b>' +
+          '<div class="wi-b"><div class="wi-h">' + it[1] + '</div><div class="wi-d">' + it[2] + '</div></div>' +
+        '</div>';
+      }).join("") + '</div>';
+  }).join("");
+  panel.innerHTML =
+    '<div id="' + pid + '">' +
+      '<button class="backbtn" id="backBtn">← 回到导览</button>' +
+      '<div class="pcard">' +
+        '<h3>' + w.title + '</h3>' +
+        '<p class="wsum">' + w.lead + '</p>' +
+        groups +
+        '<p style="font-size:11px;color:var(--mut2);margin-top:12px">点任意一行，可以看它自己的记账分录。再点一次底部按钮即可取消高亮。</p>' +
+      '</div>' +
+      '<div class="pcard"><h3>不算放水也不算抽水的六根</h3><p>' + WATER_NOTE + '</p></div>' +
+    '</div>';
+  w.groups.forEach(function(g){ g.items.forEach(function(it){
+    const el = $("wi" + it[0]);
+    if (el) el.onclick = function(){ showEdge(EDGES.find(function(x){ return x.id === it[0]; })); };
+  }); });
+  const b = $("backBtn"); if (b) b.onclick = function(){ clearFocus(); panelHome(); };
+}
+/* ---------- 存准率深读（挂在第 3 站） ---------- */
+const RRR_HTML =
+  '<div class="deep-p">存准率＝银行吸收的存款里，必须存在央行、不能动用的比例。20% 就是：吸收 100 元存款，20 元锁在央行，只能用 80 元去放贷。</div>' +
+  '<table class="dtab"><tr><th>存准率</th><th>简单乘数 1/rr</th><th>100 元准备金能支撑</th></tr>' +
+  '<tr><td><b>10%</b></td><td>10 倍</td><td>1000 元存款</td></tr>' +
+  '<tr><td><b>20%</b></td><td>5 倍</td><td>500 元存款</td></tr>' +
+  '<tr><td><b>21.5%</b></td><td>4.65 倍</td><td>465 元存款</td></tr></table>' +
+  '<div class="keybox">提准<b>不收回基础货币</b>，只是把「超额准备金」划成「法定准备金」——同一笔钱换个抽屉。但抽屉一锁，能拿去放贷的钱就少了，乘数就下来了。<b>所以提准收的是乘数，不是水。</b></div>' +
+  '<div class="deep-p" style="color:#e8eefc"><b>为什么 2006 年后取代央票？</b></div>' +
+  '<div class="tl">' +
+    '<div class="tl-r"><span class="tl-y">成本</span><div class="tl-b"><b>央票要付息</b><em>规模越大，央行付得越多；提准几乎不付息（法定准备金利率约 1.6%，远低于央票）。</em></div></div>' +
+    '<div class="tl-r"><span class="tl-y">规模</span><div class="tl-b"><b>央票卖不动就失效</b><em>央票是银行自愿买；提准是强制的，没有上限。</em></div></div>' +
+    '<div class="tl-r"><span class="tl-y">力度</span><div class="tl-b"><b>外汇占款太大</b><em>央票对冲不过来，只能上「巨斧」。</em></div></div>' +
+  '</div>' +
+  '<div class="deep-p"><b style="color:#e8eefc">代价也很大。</b>一刀切伤中小银行，后来改成差别准备金（大型 21.5%、中小 19.5%）；被锁住的钱不赚钱，存款开始搬家去理财。所以 2018 年后转为降准周期——现在降准 0.5 个百分点，大约释放 1 万亿元长期资金。</div>' +
+  '<div class="deep-p"><b style="color:#e8eefc">怎么读这个数：</b>它是「存款的百分比」，不是「资产的百分比」；现在是分档的（大型银行 / 股份制 / 中小银行），媒体说的「加权平均存准率」是按各档存款加权出来的。</div>';
+function focusStage(i){
+  const s = COURSE[i];
+  const ke = new Set(s.e || []), kn = new Set(s.nd || []);
+  svg.querySelectorAll("[data-id]").forEach(el => {
+    const isNode = el.classList.contains("node");
+    const id = el.getAttribute("data-id");
+    el.classList.remove("dim", "dimmed", "on");
+    if (isNode){ if (!kn.has(id)) el.classList.add("dimmed"); }
+    else { if (ke.has(id)) el.classList.add("on"); else el.classList.add("dimmed"); }
+  });
+}
+
+function courseCard(){
+  const rows = COURSE.map((s, i) =>
+    '<div class="cs" id="stage' + i + '">' +
+      '<div class="cs-y">' + s.y + '</div>' +
+      '<div class="cs-b"><div class="cs-t">' + s.t + '</div><div class="cs-d">' + s.s + '</div></div>' +
+      '<div class="cs-a">→</div>' +
+    '</div>'
+  ).join("");
+  return '<div class="pcard"><h3>从 1994 走到今天</h3>' +
+    '<p>六站，把「钱是怎么造出来的」一次讲完。每站都配<b style="color:#e8eefc">工具</b>和<b style="color:#e8eefc">术语</b>解释；点进去，图上对应的箭头会自动点亮。</p>' +
+    rows + '</div>';
+}
+
+function bindCourse(){
+  COURSE.forEach((_, i) => {
+    const el = $("stage" + i);
+    if (el) el.onclick = () => showStage(i);
+  });
+}
+
+function showStage(i){
+  if (i < 0 || i >= COURSE.length) return;
+  const s = COURSE[i];
+  pinned = "stage";
+  focusStage(i);
+  const terms = s.terms.map(t => '<div class="tm"><b>' + t[0] + '</b><p>' + t[1] + '</p></div>').join("");
+  const tools = s.tools.map(t => '<div class="tmL"><b>' + t[0] + '</b><span>' + t[1] + '</span></div>').join("");
+  const chips = s.data.map(d => '<span>' + d + '</span>').join("");
+  panel.innerHTML =
+    '<button class="backbtn" id="backBtn">← 回到导览</button>' +
+    '<div class="pcard"><h3><span class="n" style="background:' + C[s.tone] + '">' + (i + 1) + '</span>' + s.t + '</h3>' +
+      '<div class="st-y">' + s.y + '</div>' +
+      s.bg.map(p => '<p>' + p + '</p>').join("") + '</div>' +
+    '<div class="pcard"><h3>这一站用的工具</h3>' + tools + '</div>' +
+    (s.rrr ? '<div class="pcard"><h3>存准率怎么理解</h3>' + RRR_HTML + '</div>' : '') +
+    '<div class="pcard"><h3>必须懂的词</h3>' + terms + '</div>' +
+    '<div class="pcard"><h3>关键数据</h3><div class="chips2">' + chips + '</div></div>' +
+    '<div class="pcard" style="border-color:rgba(245,166,35,.28);background:rgba(245,166,35,.055)"><h3>为什么换到下一站</h3><p>' + s.why + '</p></div>' +
+    '<div class="stnav">' +
+      (i > 0 ? '<button class="btn" id="prevSt">← 上一站</button>' : '') +
+      (i < COURSE.length - 1 ? '<button class="btn" id="nextSt">下一站 →</button>' : '<button class="btn" id="endSt">看完了，去图上逛 →</button>') +
+    '</div>' +
+    '<button class="btn" id="histBtn4" style="width:100%;margin-top:8px">看数据版时间轴（含图表）→</button>';
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+  const pv = $("prevSt"); if (pv) pv.onclick = () => showStage(i - 1);
+  const nx = $("nextSt"); if (nx) nx.onclick = () => showStage(i + 1);
+  const en = $("endSt"); if (en) en.onclick = () => { clearFocus(); panelHome(); };
+  const h4 = $("histBtn4"); if (h4) h4.onclick = () => showHistory();
+}
+/* ============================ 7 天逆回购全流程 ============================ */
+const REPO = [
+  { t:"先看全局：这笔买卖到底长什么样", who:"央行 ↔ 约 50 家一级交易商",
+    what:[
+      "一句话：央行用 <b>1.40%</b> 的价，把 <b>1200 亿准备金</b>借给约 50 家一级交易商，期限 7 天；机构拿合格债券做押品；到期还本付息，央行解押。",
+      "把央行想成<b>资金批发总闸门</b>：一级交易商是唯一能直接到总闸门批货的批发商，别的银行只能去二级市场转手。",
+      "注意央行不是搬现金给银行，而是在账本上给银行<b>增加准备金存款</b>。准备金就是银行存在央行的钱，也是银行间市场用的那种「钱」。",
+      "后面所有细节，其实只在回答四个问题——" ],
+    led:[
+      ["① 谁欠谁","结算后<b>银行欠央行</b>。央行资产端记「债权」，不记「债券」"],
+      ["② 押品在哪","冻在央行。债券<b>所有权仍在银行</b>，只是不能卖、不能再押"],
+      ["③ 钱在谁账上","银行在央行的<b>准备金账户</b>里，出不了银行间市场"],
+      ["④ 到期怎么反做","还本付息 → 四笔全部反向记一遍 → <b>债券解押</b>"] ],
+    terms:[
+      ["准备金","银行存在央行的钱。用于清算和法定要求，不能直接拿去给企业放贷。"],
+      ["一级交易商","能直接和央行做交易的机构，约 50 家。不只有银行，还有券商。"],
+      ["合格押品","国债、政策性金融债、高等级信用债等，按面值打折认。"]] },
+
+  { t:"T 日 9:00 · 公告：只是「说定了」", who:"央行 → 全市场",
+    what:[
+      "公告：「今日以固定利率、数量招标方式开展 7 天期逆回购操作 <b>1200 亿元</b>，中标利率 <b>1.40%</b>。」",
+      "这一句里藏了三件事：<b>7 天</b>、<b>1.40%</b>、<b>数量靠招标</b>。利率是公告里就写死的，不是投标招出来的。",
+      "正因为价格由央行单方面定，它才能当<b>政策利率</b>用——其他利率都是市场对着它谈出来的。",
+      "<b>账上什么都还没动。</b>前三步（公告、投标、分配）合起来只是：说要做 → 报名 → 分额度。" ],
+    led:[["此刻","只有一张公告，零资金划转"]],
+    terms:[["固定利率、数量招标","价格央行定死，机构只能报「我要多少」。反过来，央行定数量、让机构报价，就叫利率招标。"]] },
+
+  { t:"T 日 9:20 · 投标：报数量，不报价", who:"约 50 家一级交易商 → 央行",
+    what:[
+      "工行要 200 亿、某股份行要 80 亿、中信证券要 30 亿……<b>报的是数量</b>，不是价格。",
+      "为什么抢？因为 1.40% 通常<b>低于</b>市场价。假设 DR007 在 1.63%，从央行拿 1.40% 的钱转手拆出去，中间 23 个基点就是无风险套利。",
+      "所以每一次逆回购，本质上是央行发了一笔<b>低价额度</b>，谁抢到谁赚。投标常常超额。",
+      "顺带一个容易忽略的点：一级交易商<b>不只有银行</b>，还有中信证券、国泰君安、中金、招商证券等券商。严格说券商不是存款性公司、会计科目不同，但「投放—质押—到期回笼」的主线一模一样。" ],
+    led:[["此刻","仍是纸面承诺，钱没动"]],
+    terms:[["一级交易商","约 50 家，含券商——这是很多人不知道的一点。"],
+           ["基点（bp）","0.01%。23 个基点就是 0.23%。"]] },
+
+  { t:"T 日 · 分配：额度落地，账还没动", who:"央行 → 中标机构",
+    what:[
+      "投标超了就按规则分（通常按比例，也会照顾中小机构），额度落到具体机构头上。",
+      "到这一步为止，<b>账上依然什么都没发生</b>。",
+      "这就是为什么「宣布」和「记账」必须分开看：市场往往在宣布那一刻就反应了，但基础货币要到结算才真正变化。" ],
+    led:[["此刻","额度已定，账未动"]],
+    terms:[["中标量","机构实际拿到的金额。投标量可以大于中标量。"]] },
+
+  { t:"T 日结算 · 谁欠谁、钱在谁账上", who:"央行 ↔ 中标机构",
+    what:[
+      "结算那一瞬间，两本账同时动，金额一模一样：",
+      "三个「不是」，把这一步记牢：",
+      "<b>不是「央行把准备金借给银行」，而是「央行通过记账创造准备金」。</b>资产端同时多了一笔对机构的债权——是借钱，不是白送。",
+      "<b>不是「央行买了债券」。</b>资产端记的是「银行欠我钱」；债券只是押品，不进央行的资产科目。",
+      "所以 <b>逆回购 ≠ 央行买国债</b>：前者是借钱，到期要还；后者是买资产，不用还。",
+      "再记一个口径：<b>基础货币 = 流通中现金 + 准备金存款</b>。逆回购主要增加的是准备金，不是现金——所以它不会直接让市面上的钞票变多。" ],
+    led:[
+      ["央行 · 资产","对存款性公司债权 ＋1200 亿　→「银行欠央行 1200 亿」"],
+      ["央行 · 负债","准备金 ＋1200 亿　→「银行体系存在央行的钱多了 1200 亿」"],
+      ["银行 · 资产","准备金 ＋1200 亿　→「我在央行账上的钱多了」"],
+      ["银行 · 负债","对央行负债 ＋1200 亿　→「我欠央行 1200 亿」"],
+      ["基础货币","＋1200 亿（动的是准备金，不是流通中现金）"] ],
+    terms:[["对其他存款性公司债权","资产负债表上专门记「借给银行的钱」的科目。MLF、PSL、逆回购、再贷款全都装在这里。"],
+           ["基础货币","流通中现金 + 准备金存款。逆回购动的是后半截。"]] },
+
+  { t:"同时 · 押品：债券在哪", who:"机构 → 央行（冻结，不过户）",
+    what:[
+      "借钱要有抵押。机构把约 1200 亿面值的<b>合格债券</b>质押给央行。",
+      "合格押品<b>不一定是国债</b>：国债、政策性金融债、高等级信用债等都可以。",
+      "按面值<b>打折认</b>：100 元面值可能只认 95 元融资额。",
+      "债券<b>所有权还在机构</b>，但被冻结——不能卖、不能再质押。所以谈不上「把债券卖给央行」，到期也谈不上「买回」。",
+      "这层隐形约束很关键：<b>手里没合格债券，就借不到这笔钱。</b>2013 年「钱荒」的机制之一，就是银行把券都押出去了，再想借钱时没有押品。" ],
+    led:[["质押债券","约 1200 亿面值，冻结"],
+         ["所有权","仍属机构，但处置权被限制"],
+         ["到期动作","解押——不是买回"]],
+    terms:[["质押式","债券押在央行，到期还钱赎券。债券不过户。"],
+           ["折扣率","100 元面值的券能融多少钱。打折是为了防价格波动。"]] },
+
+  { t:"T+1 到 T+6 · 钱能去哪，不能去哪", who:"银行 ↔ 银行",
+    what:[
+      "拿到准备金的银行可以拆给别人，<b>DR007</b> 就是银行间借 7 天钱的加权平均价。央行给 1.40%，DR007 通常围绕它小幅波动——政策利率不是说一不二的命令价，是一个<b>锚</b>。",
+      "2024 年 7 月起还有一道走廊：下限 1.20%、上限 1.90%，把短端利率框在里面。",
+      "<b>关键：这 1200 亿出不了银行间市场。</b>它是准备金，不能直接给企业放贷，也不能划进证券账户买股票。",
+      "但它会改变银行的行为，间接传导出去，有两条路：<b>腾挪</b>——银行原本要囤一笔超额准备金保清算，现在安全垫变厚，可以把自有资金释放出来放贷或配债；<b>定价</b>——逆回购利率是负债端成本的锚，DR007 → 银行负债成本 → 贷款利率和债券收益率。",
+      "<b>传导有边界：</b>7 天的钱不太可能支撑 3 年的企业贷款，期限错配太大、净息差也不划算。真正承担中长期信用扩张的是降准、MLF、结构性工具。逆回购管的是<b>水位</b>和<b>短端锚</b>。" ],
+    led:[["政策利率","1.40%"],["走廊","1.20% ～ 1.90%"],["作用半径","银行间市场内部 ＋ 定价锚"]],
+    terms:[["DR007","银行间 7 天质押式回购的加权平均利率，全市场短端资金的价格。"],
+           ["利率走廊","用两个利率画上下限，让市场利率在里面浮动，不必天天出手。"],
+           ["期限错配","借短放长。借 7 天的钱去放 3 年的贷，风险很大。"]] },
+
+  { t:"T+7 到期 · 怎么反做", who:"机构 → 央行",
+    what:[
+      "七天到了，机构还本金 1200 亿，外加利息：1200 亿 × 1.40% × 7/365 ≈ <b>3200 万元</b>。",
+      "然后四笔全部<b>反向记一遍</b>，债券解押。",
+      "严格说，准备金要扣「本金＋利息」，基础货币减少约 <b>1200 亿＋利息</b>；利息很小，教学版常按本金简化。",
+      "<b>钱回央行，基础货币减少。</b>到期不续作，就是抽水。" ],
+    led:[
+      ["央行 · 资产","对机构债权 −1200 亿"],
+      ["央行 · 负债","准备金 −1200 亿（含利息约 3200 万）"],
+      ["机构","准备金 −1200 亿−利息；对央行负债 −1200 亿"],
+      ["债券","解押，回到可自由处置状态"],
+      ["基础货币","−1200 亿（教学版简化）"] ],
+    terms:[["到期回笼","逆回购到期，央行收回资金，基础货币减少。"],
+           ["解押","解除质押冻结。债券从来没过户给央行，所以不是「买回」。"]] },
+
+  { t:"那银行为什么愿意付这笔利息？", who:"机构视角",
+    what:[
+      "直觉上「付 3200 万利息借 1200 亿」像是吃亏。但银行算的不是这一笔账——它买的是四样东西：",
+      "真正会吃亏的，是「不缺流动性却盲目抢额度，拿到之后既拆不出去、又白占押品」的机构。但一级交易商的资金部门每天做的就是这个判断，盲目抢额度的空间很小。" ],
+    led:[
+      ["第一层 · 保险","参与逆回购常常不是「赚利差 vs 付利息」，而是「付一点利息」vs「清算失败」。那点利息本质是流动性保险的保费。"],
+      ["第二层 · 套利","央行给 1.40%，DR007 年均约 1.63%（高 23 个基点）。转手拆出去就把成本盖住还倒赚。额度本身就是低价资源的分配权，不用才是浪费。"],
+      ["第三层 · 达标","LCR、NSFR 等监管指标里，准备金是质量最高的资产之一。花钱换指标缓冲，账算得过来。2025 年末商业银行超额备付金率只有 1.64%，安全垫本就不厚。"],
+      ["第四层 · 主动","利率央行定、数量自己报。不缺钱可以少报甚至不报；愿意报，说明这笔钱在自己体系里的边际价值高于 1.40%。"] ],
+    key:"一句话：那笔利息买的是「流动性安全 ＋ 套利空间 ＋ 监管缓冲」的打包服务，不是单纯借了一笔要还的钱。",
+    terms:[["LCR / NSFR","流动性覆盖率、净稳定资金比例，两个银行流动性监管指标。"],
+           ["超额备付金率","银行在央行多留的准备金占存款的比例。缓冲薄，就更容易缺钱。"]] },
+
+  { t:"第二天 · 续作还是不续作：看净投放", who:"央行 → 全市场",
+    what:[
+      "现实中央行经常滚：今天到期 1000 亿、新做 1200 亿，<b>净投放 200 亿</b>。",
+      "判断松紧看的是<b>净投放（新做 − 到期）</b>，不是单日操作量。",
+      "<b>一个最常见的误读：</b>看到「开展 5000 亿逆回购」就以为放水 5000 亿——必须先减去当天到期的量。逆回购是<b>滚动短期工具</b>，管的是水位，不是水量。" ],
+    led:[["新做 1200 / 到期 1000","净投放 ＋200，水位上升"],
+         ["新做 1000 / 到期 1200","净回笼 −200，水位下降"],
+         ["新做 1200 / 到期 1200","净投放 0，只是滚续"]],
+    terms:[["净投放","新做金额减去到期金额。这才是真正影响流动性的数。"],
+           ["滚动操作","每天做、每天到，用短工具维持水位，不等于长期宽松。"]] },
+
+  { t:"2026 年 11 月起：它已经不是每日操作了", who:"机制调整",
+    what:[
+      "在此之前，7 天逆回购几乎每个工作日都做，是日常流动性管理的主力。但「每日操作」本来就有例外：资金充裕时可以<b>零操作</b>（如 2026 年 6 月 3—4 日连续两天），甚至连续暂停（2026 年 8 月连续 8 个工作日未开展）。",
+      "<b>2026 年 10 月 30 日公告、11 月 2 日起调整：</b>① <b>隔夜逆回购</b>改为每个工作日开展，固定利率、数量招标，成为新的日常操作主力；② <b>7 天逆回购</b>改为「固定数量、利率招标、多重价位中标」，并明确<b>主要在税期、月末</b>等时点开展。",
+      "伴随这次调整，<b>政策利率的锚从 7 天逆回购利率切换为隔夜逆回购利率</b>（调整时为 1.25%）。",
+      "所以今天再看这个工具：它已经从「每日例行」变成「关键时点的精细调节阀」。本页前面用 1.40% / 7 天走一遍流程，是为了把机制讲清楚——<b>机制没变，变的是它在工具箱里的位置。</b>" ],
+    led:[["过去","几乎每个工作日都做，7 天利率即政策利率"],
+         ["2026.11 起","隔夜逆回购每日做，接任政策利率（1.25%）"],
+         ["现在的 7 天","固定数量、利率招标、多重价位中标，主要在税期 / 月末"]],
+    key:"三句话收尾：① 前三步只是「说定了」，结算才「记账」。② 逆回购是央行借钱给机构，债券只是押品；资产端记「债权」，不记「债券」。③ 到期还本付息赎券＝回笼；续作看净投放；DR007 围着政策利率转。",
+    terms:[["隔夜逆回购","期限 1 天的逆回购。2026.11 起接替 7 天成为每日操作工具。"],
+           ["多重价位中标","各按各报的利率成交，报得优的先拿（美式）。"],
+           ["政策利率切换","锚从 7 天 1.40% 换成隔夜 1.25%。"]] }
+];
+/* ============================ 买断式逆回购全流程 ============================ */
+const OUTRIGHT = [
+  { t:"先看全局：它到底在干什么", who:"央行 ↔ 一级交易商",
+    what:[
+      "一句话：央行<b>先买入</b>一级交易商手里的债券（券真的过户到央行名下），同时把钱付给机构；3 个月或 6 个月后，机构再把券<b>买回去</b>，钱还给央行。",
+      "所以它表面上叫「逆回购」，实际是<b>一笔有期限的债券买卖</b>——先买后卖，两次都是真成交。",
+      "它 2024 年 10 月才启用，是央行工具箱里<b>最年轻</b>的一件。启用后首笔就是 6 个月期、数千亿量级。",
+      "四个问题还是那四个，只是答案全变了——" ],
+    led:[
+      ["① 谁欠谁","到期前机构欠央行钱；但券已经过户，央行是<b>持有人</b>"],
+      ["② 押品在哪","已经不在「押品」这个筐里了——所有权转移，跳过质押"],
+      ["③ 钱在谁账上","机构准备金账户 ＋，债券资产 −"],
+      ["④ 到期怎么反做","央行把券<b>卖回</b>给机构，不是解押——这是一次反向成交"] ],
+    terms:[
+      ["买断式","债券所有权真的转移，不走冻结质押那条路。"],
+      ["一级交易商","约 50 家，和 7 天逆回购是同一批机构。"],
+      ["多重价位中标","各按各报的利率成交。下一站细讲。"]] },
+
+  { t:"它为什么会出现：一次补两段空白", who:"背景",
+    what:[
+      "2024 年 10 月之前，央行的投放工具在期限上是<b>断档</b>的：隔夜、7 天（逆回购），然后直接跳到 1 年（MLF）。<b>1 个月到 1 年这一段几乎是空的。</b>",
+      "短期工具要天天滚，机构不敢拿它去支持跨季、跨年的资产；MLF 又太长、成本更高。中间这段没有合手的工具。",
+      "第二个空白更隐蔽：<b>质押式回购要占用券。</b>券押在央行，冻结期内不能再用，占着这家机构的可质押资产。持债多、但可用押品紧的机构，想借钱就没门路。",
+      "买断式逆回购一次补上这两段：<b>3 个月 / 6 个月的期限</b>，加上<b>券是被卖掉、不是被押掉</b>。" ],
+    led:[["期限","3 个月 / 6 个月，填 1M–1Y 的空白"],
+         ["启用","2024 年 10 月"],
+         ["频率","原则上每月开展一次，不是每天"],
+         ["标的","国债、地方政府债券、金融债券、公司信用类债券等"]],
+    terms:[["期限空白","短工具要天天滚，长工具太贵，中间没有合适的。"],
+           ["质押额度","一家机构能拿多少券去做质押融资。券被占住，额度就少。"]] },
+
+  { t:"公告：这次数量和利率，正好反过来", who:"央行 → 全市场",
+    what:[
+      "7 天逆回购是「<b>固定利率、数量招标</b>」：价格央行定死，机构报数量。",
+      "买断式逆回购是「<b>固定数量、利率招标</b>」：<b>数量央行定，利率机构报。</b>",
+      "所以公告里你会看到规模（如今日开展 5000 亿元、6 个月期买断式逆回购操作），<b>但往往看不到利率</b>——因为利率要等招标结果出来才算数。",
+      "这个差别不是文字游戏：<b>价格谁定，谁就掌握政策信号。</b>央行不报这个价，说明它不想让这个利率变成政策基准。" ],
+    led:[["数量","央行定"],["利率","招标产生，不是宣布的"],["此刻","只有公告，账未动"]],
+    terms:[["固定数量、利率招标","央行定投放多少，机构报利率。和「固定利率、数量招标」正好相反。"]] },
+
+  { t:"投标：这次报的是利率", who:"约 50 家一级交易商 → 央行",
+    what:[
+      "机构在系统里报<b>利率和数量</b>：我要 100 亿、我愿意付 1.85%。",
+      "报得<b>低</b>的优先——因为对央行来说，利率低意味着这笔投放更「便宜」。报高的排在后面，可能拿不到。",
+      "所以投标过程本身就在<b>发现价格</b>：市场愿意用什么成本从央行拿 6 个月的钱，由这几十家机构当场报出来。",
+      "这解释了为什么它每次利率都可能不一样——它随行就市，跟着 DR007、同业存单利率、国债收益率一起动。" ],
+    led:[["机构报","利率 ＋ 数量"],["排序","报得低的优先"],["结果","每一期利率都可能不同"]],
+    terms:[["利率招标","机构报价格，央行按规则分配。"],
+           ["价格发现","市场通过报价把价格「找」出来，不是谁指定的。"]] },
+
+  { t:"多重价位中标：一人一个价", who:"分配规则",
+    what:[
+      "分配规则叫「<b>多重价位中标</b>」，也叫<b>美式</b>：各按各报的利率成交。报 1.85% 的按 1.85%，报 1.90% 的按 1.90%。",
+      "对照的是「单一价位中标」（<b>荷兰式</b>）：不管报多少，全场按同一个利率成交。",
+      "多重价位的好处是<b>不惩罚诚实报价</b>——你报真实想法，就按你的价成交；坏处是利率不统一，媒体没法报「一个数」。",
+      "<b>关键结论：正因为利率是机构报出来的，它就不是政策利率。</b>央行没有宣布它、也不为它背书。它的角色是「市场化的中期资金价格」，不是政策信号。" ],
+    led:[["多重价位（美式）","各按各的价成交"],
+         ["单一价位（荷兰式）","全场一个价"],
+         ["含义","它因此不构成政策利率"]],
+    terms:[["美式 / 荷兰式","两种招标分配规则，前者按个体报价，后者统一价。"]] },
+
+  { t:"结算：券是真的过户了", who:"央行 ↔ 中标机构",
+    what:[
+      "这是它和质押式逆回购<b>最根本的区别</b>。结算时，券<b>从机构账户划到央行账户</b>——所有权真的转移，不是冻结。",
+      "机构那边：债券资产减少，准备金增加，同时多了一笔「到期要买回」的义务。",
+      "央行那边：多了一笔<b>对其他存款性公司债权</b>，负债端多了一笔准备金，基础货币增加。",
+      "<b>这里有个容易绕晕的地方：法律上券过户了，会计上央行仍把它记成「债权」而不是「债券资产」。</b>因为到期要按约定价格卖回，风险和报酬实质上没转移。所以你在央行资产负债表上看不到「买断式逆回购持有的债券」这一项。",
+      "记住一句话就够：<b>券换了主人，但账上还叫借钱。</b>" ],
+    led:[
+      ["机构 · 资产","债券 −（过户）　准备金 ＋"],
+      ["机构 · 负债","到期买回义务 ＋"],
+      ["央行 · 资产","对其他存款性公司债权 ＋"],
+      ["央行 · 负债","准备金 ＋"],
+      ["基础货币","＋"] ],
+    terms:[["实质重于形式","法律形式变了，经济实质还是融资，所以会计按融资记。"]] },
+
+  { t:"它比质押式多给了什么：盘活持债", who:"机构视角",
+    what:[
+      "质押式逆回购里，券押在央行，<b>冻结期内不能再用</b>——它占着这家机构的可质押资产。",
+      "买断式里，券是<b>卖掉</b>的，不走质押通道，所以机构的<b>质押额度被释放</b>出来，可以继续用别的券做质押融资。",
+      "这就是央行说的「<b>盘活</b>金融机构持有的债券资产」。对持债多、可用押品紧的机构，这个差别是实打实的。",
+      "再加上期限 3–6 个月，机构可以拿这笔钱去支持<b>跨季、跨年</b>的资产配置，不用天天滚 7 天的资金。" ],
+    led:[["质押式","券冻结，占用质押额度"],
+         ["买断式","券卖掉，释放质押额度"],
+         ["期限","跨季、跨年可用"]],
+    terms:[["盘活持债","把躺在账上的债券变成可用的资金，同时腾出质押空间。"]] },
+
+  { t:"机构图什么：其实是一笔纯成本的融资", who:"机构视角",
+    what:[
+      "先把一个误解拆掉：<b>它不是「卖掉债券」。</b>卖出价和买回价在成交那一刻就写死了，机构既不享受这期间债券上涨，也不承担下跌——<b>价格风险根本没转移，只是所有权换了个名字</b>。所以这不是投资决策，是<b>融资决策</b>。",
+      "既然是融资，就要算成本：机构放弃债券票息、换来只赚 0.35% 的准备金、还要付招标出来的利息。<b>纯从收益看，这笔买卖是亏的。</b>",
+      "那它为什么还做？因为它买的不是收益，是四样东西——",
+      "要特别注意和 7 天逆回购的差别：<b>那边有明显套利空间</b>（央行定 1.40%，市场价 1.63%，中间 23 个基点白拿）；<b>这边没有</b>——利率是机构自己报出来的，就在市场价附近。所以做买断式的机构，图的是期限和押品，不是差价。",
+      "真正会吃亏的，是拿 3 个月的钱去配更短、或压根没用途的资产——那样等于白付利息，还白占着券。" ],
+    led:[
+      ["一 · 期限确定","3–6 个月锁死，不用每周续作。7 天工具每次到期都要重新投标，续不上就是流动性风险，跨季、跨年最怕这个。"],
+      ["二 · 释放押品","券过户、不走质押通道，质押额度腾出来。季末年末押品最紧的时候，这一条最值钱。"],
+      ["三 · 流动性保险","手里有券但缺钱时，它是最后一道出口。和 7 天逆回购一样，付的是保费。"],
+      ["四 · 批发价与身份","只有约 50 家一级交易商能直接参与，拿到的是批发价资金，也是可预期的资金安排。"],
+      ["代价 · 比质押式贵","它锁 3–6 个月、还帮你腾押品，所以价格通常高于 7 天质押式（DR007 一带）。高出的那一截，就是这份「确定性 ＋ 押品」的溢价。"] ],
+    key:"一句话：它买的不是收益，是「3 到 6 个月不会断的钱 ＋ 腾出来的押品额度」。所以判断一家机构做不做，看的不是利率划不划算，而是它有没有跨季的资金缺口和押品压力。",
+    terms:[["滚动风险","短期工具到期要重新融资，续不上就出事。锁定 3–6 个月就是在消除这个风险。"],
+           ["不是养券套利","「养券」是押着券借短钱、吃 2% 上下的票息，赚票息与融资成本之差。买断式是把券卖掉，票息也没了——所以它纯粹是融通流动性，赚不到这个差。"]] },
+
+  { t:"这 3 到 6 个月里：它稳住了什么", who:"它在工具箱里的位置",
+    what:[
+      "逆回购是「<b>水位</b>」工具，天天滚；买断式是「<b>期限结构</b>」工具，一月一次，管的是<b>中期流动性</b>。",
+      "它能压住 3 个月、6 个月的<b>跨季资金价格</b>——季末、年末机构最怕借不到跨季的钱，有了这个工具，央行可以提前把这段价格锚住。",
+      "它和 MLF 形成分工：MLF 1 年、成本相对高；买断式 3–6 个月、价格由市场报、更灵活。2024 年 10 月之后 MLF 余额在压降，一部分中期需求被它接走。",
+      "所以看它的规模，不要看单次操作量，要看<b>存量余额</b>——在所有投放工具里，它是「余额」最有意义的那个。" ],
+    led:[["角色","中期流动性，管期限结构"],
+         ["节奏","每月一次，跨季跨年"],
+         ["与 MLF","接走一部分中期需求"]],
+    terms:[["期限结构","不只是钱多钱少，还有「多长期限的钱」这个维度。"],
+           ["存量余额","未到期部分的总和。滚动工具看余额才看得出真实投放。"]] },
+
+  { t:"到期：卖回去，不是解押", who:"机构 → 央行",
+    what:[
+      "3 个月或 6 个月后，机构按约定价格把券<b>买回去</b>，钱还给央行。",
+      "注意措辞：质押式到期叫「<b>解押</b>」——券从来没走过，只是解冻；买断式到期叫「<b>卖回</b>」——券真的换了一次手，这是一次<b>反向成交</b>。",
+      "两次成交的价差，就是这几个月的<b>利息</b>：机构买回时付的钱 > 当初卖出的钱，差额就是成本。",
+      "到期不续作，基础货币减少——和其他工具一样，<b>到期就是回笼</b>。" ],
+    led:[["到期动作","央行把券卖回给机构（反向成交）"],
+         ["机构","债券 ＋　准备金 −（本金＋利息）"],
+         ["央行","对其他存款性公司债权 −　准备金 −"],
+         ["基础货币","−"]],
+    terms:[["反向成交","到期那一笔是独立的买卖，不是撤销原交易。"],
+           ["买卖价差","两次成交价之差，等于这段时间的利息。"]] },
+
+  { t:"它 ≠ 央行买卖国债", who:"最容易混的一对",
+    what:[
+      "这两件事很容易混：都涉及<b>债券所有权转移</b>，都是央行拿到券。区别在<b>到期</b>。",
+      "买断式逆回购：<b>到期要卖回去</b>。所以它是有期限的融资，钱最终要还，基础货币会回笼。",
+      "央行买卖国债：<b>买了就是买了</b>，没有到期日。它是永久性投放（卖出国债则是永久性回笼）。",
+      "所以看央行资产负债表：买断式逆回购体现为「<b>对其他存款性公司债权</b>」，国债买卖才体现为「<b>对政府债权</b>」。两个科目，两种性质。" ],
+    led:[["买断式逆回购","到期卖回 → 有期限 → 记「对其他存款性公司债权」"],
+         ["买卖国债","无到期 → 永久 → 记「对政府债权」"],
+         ["共同点","都涉及所有权转移"]],
+    terms:[["永久性投放","央行买断资产，不设到期日，基础货币不会自动回笼。"]] },
+
+  { t:"四件工具，一张表看清", who:"收尾",
+    what:[
+      "把这四件并排放，差别一眼就出来了。它们真正的区别不在「放不放水」，而在<b>期限、押品怎么处理、价格谁定</b>这三件事上。" ],
+    led:[
+      ["7 天 / 隔夜逆回购","固定利率、数量招标｜≤7 天｜质押不过户｜价格即政策利率"],
+      ["买断式逆回购","固定数量、利率招标｜3M / 6M｜买断过户｜价格随行就市"],
+      ["MLF","利率招标、多重价位｜1 年｜质押｜2025.3 退出政策利率"],
+      ["买卖国债","央行直接买卖｜无期限｜过户｜永久性投放或回笼"] ],
+    key:"一句话记住它：<b>央行用「先买后卖」的方式，给机构一笔 3 到 6 个月的钱，顺手把机构手里的债券盘活了。</b>价格由市场报，所以它只是一笔市场化的中期资金，不是政策信号——这正是它和 7 天逆回购最大的分工。",
+    terms:[] }
+];
+
+/* ============================ MLF 全流程 ============================ */
+const MLF = [
+  { t:"先看全局：它到底在干什么", who:"央行 ↔ 符合条件的银行",
+    what:[
+      "一句话：央行把<b>1 年期</b>的钱借给符合条件的银行，银行拿国债、政策性金融债、高等级信用债等做<b>质押</b>；到期还本付息，央行解押。",
+      "它 2014 年 9 月创设，是央行第一个<b>中期</b>投放工具——在它之前，央行手里只有隔夜、7 天这类短期工具。",
+      "它曾经是中国货币政策里最重要的一个利率：<b>2019 到 2025 年，LPR 就是按「MLF 利率 ＋ 加点」报出来的。</b>MLF 一动，LPR 就动，你的房贷就动。",
+      "四个问题，答案是——" ],
+    led:[
+      ["① 谁欠谁","银行欠央行。资产端记「对其他存款性公司债权」，和逆回购同一个科目"],
+      ["② 押品在哪","押在央行，<b>不过户</b>。冻结期内不能卖、不能再押"],
+      ["③ 钱在谁账上","银行的准备金账户，期限 1 年，比逆回购长得多"],
+      ["④ 到期怎么反做","还本付息、<b>解押</b>——和逆回购一样，不是卖回"] ],
+    terms:[
+      ["中期借贷便利","MLF 的中文全名。「中期」指 1 年，「借贷便利」指央行对金融机构的贷款。"],
+      ["合格质押品","国债、央行票据、政策性金融债、高等级信用债等，2018 年后还纳入优质小微贷款、绿色贷款。"],
+      ["LPR","贷款市场报价利率，你的房贷就锚在它上面。"]] },
+
+  { t:"它为什么出现：2014 年的两道坎", who:"背景",
+    what:[
+      "第一道坎：<b>外汇占款见顶回落。</b>2014 年 5 月外汇占款达到约 27.3 万亿元的历史峰值，之后开始下降。过去央行靠买外汇<b>被动</b>投放基础货币，这条路走不通了，必须换一个<b>主动</b>投放的渠道。",
+      "第二道坎：<b>央行手里没有中期工具。</b>隔夜、7 天只能管水位；要支持中长期信贷（基建、制造业、房地产），银行需要更长期限的稳定资金。",
+      "MLF 一次补上这两个缺口：期限 3 个月到 1 年，主动投放，想给多少给多少。",
+      "它出现的时间点不是巧合——<b>2014 年正是「外汇占款退潮、主动投放接棒」这个转折的起点</b>，也就是这张资金流向图上 ② 那根箭头换轨的时刻。" ],
+    led:[["创设","2014 年 9 月"],
+         ["期限","3 个月 / 6 个月 / 1 年（现在以 1 年为主）"],
+         ["历史定位","央行第一个中期投放工具"]],
+    terms:[["外汇占款","央行为收购外汇而投放的人民币。它曾是基础货币的主渠道，2014 年后退潮。"],
+           ["主动投放","央行自己决定给多少、给多久，不再被动跟随外汇流入。"]] },
+
+  { t:"独门作用：它曾经是 LPR 的锚", who:"为什么它这么重要",
+    what:[
+      "这是 MLF 最重要的历史角色，也是最容易被忽略的一层。",
+      "2019 年 8 月 LPR 改革，报价方式被设计成：<b>LPR ＝ MLF 利率 ＋ 加点</b>。18 家报价行在这个基础上报出自己的价，去掉最高最低再平均。",
+      "效果很直接：<b>央行只要调 MLF 利率，LPR 就跟着动，贷款利率跟着动，你的月供跟着动。</b>MLF 就是从政策利率接到贷款利率的那根中枢。",
+      "所以那几年，市场每月盯的不是 LPR 公布日，而是 <b>MLF 操作日</b>——因为 MLF 先动，LPR 后动。",
+      "2025 年 3 月之后这个直接关系弱化了（后面细讲），但它仍是理解「政策利率怎么传到你的月供」的关键一环。" ],
+    led:[["设计","LPR ＝ MLF 利率 ＋ 加点（2019.8 起）"],
+         ["效果","MLF 动 → LPR 动 → 贷款利率动"],
+         ["观察顺序","先看 MLF 操作日，再看 LPR 报价日"]],
+    terms:[["加点","报价行在 MLF 利率上加的那一截，反映自己的资金成本和风险溢价。"],
+           ["政策利率传导","政策利率不是直接改你的月供，要沿着链条一站一站往下走。"]] },
+
+  { t:"公告：每月 15 日，固定节奏", who:"央行 → 全市场",
+    what:[
+      "2024 年 7 月起，MLF 操作时间固定在<b>每月 15 日</b>（遇节假日顺延），并提前公布操作安排。",
+      "这个「固定节奏」本身就是政策工具的一部分：市场知道哪天会有钱、大概多少，就不用提前囤流动性，短端利率也不会被预期反复扰动。",
+      "公告会说：开展 XXXX 亿元 MLF 操作，期限 1 年，中标利率 X.XX%。",
+      "<b>注意最后那个利率：2025 年 3 月之前，它是央行直接公布的。</b>这正是它能当政策利率的前提——价格由央行单方面宣布，才有信号意义。" ],
+    led:[["频率","每月一次，15 日"],
+         ["期限","以 1 年为主"],
+         ["此刻","只有公告，账未动"]],
+    terms:[["操作日","央行开展 MLF 的固定日期。市场会提前交易这个预期。"]] },
+
+  { t:"投标：2025 年 3 月前后，两套完全不同的规则", who:"机制转折",
+    what:[
+      "<b>2025 年 3 月之前：</b>利率由央行定，机构报数量——和 7 天逆回购一样，是「固定利率、数量招标」。正因为利率央行说了算，它才能当政策利率。",
+      "<b>2025 年 3 月起：</b>改成「<b>固定数量、利率招标、多重价位中标</b>」——数量央行定，利率机构报，各按各的价成交。这和买断式逆回购是同一套规则。",
+      "这次改动不是技术调整，是<b>角色调整</b>：价格一旦由市场报出来，央行就不再为这个利率背书，它也就不再是政策利率。MLF 从「政策利率的锚」变成了「一笔市场化的中期资金」。",
+      "所以你今天看到的 MLF 利率，和 2019 年那个 MLF 利率，虽然同名，性质已经不同了。" ],
+    led:[["2025.3 前","固定利率、数量招标 → 曾是政策利率"],
+         ["2025.3 起","固定数量、利率招标、多重价位 → 市场化定价"],
+         ["并列对象","买断式逆回购用的是同一套规则"]],
+    terms:[["固定利率、数量招标","央行定价、机构报量。7 天逆回购至今仍用这套。"],
+           ["利率招标、多重价位","央行定量、机构报价、各按各的价成交。买断式逆回购和现在的 MLF 用它。"]] },
+
+  { t:"结算：钱怎么记", who:"央行 ↔ 中标银行",
+    what:[
+      "中标后结算，两本账同时动，金额一样：",
+      "央行资产端「对其他存款性公司债权」＋，负债端「准备金」＋；银行反过来，准备金 ＋、对央行负债 ＋。基础货币增加。",
+      "<b>关键一点：MLF、7 天逆回购、买断式逆回购，在央行资产负债表上是同一个科目</b>——「对其他存款性公司债权」。你在报表上看不出哪一笔是 MLF、哪一笔是逆回购。",
+      "所以分析人士要把这个科目的月度变化，和当月的 MLF、逆回购、买断式操作量对起来看，才能还原央行到底用了哪件工具。" ],
+    led:[["央行 · 资产","对其他存款性公司债权 ＋"],
+         ["央行 · 负债","准备金 ＋"],
+         ["银行 · 资产","准备金 ＋"],
+         ["银行 · 负债","对央行负债 ＋"],
+         ["基础货币","＋"]],
+    terms:[["科目合并","不同工具记在同一个资产科目里，报表分不出来，只能靠操作公告还原。"]] },
+
+  { t:"质押：券被押住，不过户", who:"机构的代价",
+    what:[
+      "MLF 是<b>质押式</b>：银行把合格债券押给央行，券<b>不过户</b>，所有权还在银行，但冻结期内不能卖、不能再押。",
+      "合格质押品包括国债、央行票据、政策性金融债、高等级信用债，2018 年后还纳入优质小微企业贷款、绿色贷款等。",
+      "和买断式逆回购的关键差别就在这：<b>MLF 占用押品，买断式释放押品。</b>",
+      "所以对一家押品已经很紧的银行，MLF 未必借得动——这也是买断式逆回购出现后，能分流一部分中期需求的原因之一。" ],
+    led:[["方式","质押式，券不过户"],
+         ["押品","国债、央票、政金债、高等级信用债等"],
+         ["与买断式","MLF 占用押品；买断式释放押品"]],
+    terms:[["质押式","券冻结但不过户，到期解押。和逆回购同一个逻辑。"]] },
+
+  { t:"这 1 年里：它能干什么，不能干什么", who:"它在体系里的位置",
+    what:[
+      "期限 1 年，意味着它能支撑<b>中长期信贷</b>——基建、制造业中长期贷款、房地产开发贷。这是 7 天逆回购做不到的：借 7 天的钱去放 3 年的贷，期限错配太大。",
+      "但它<b>仍然是基础货币，仍然在银行体系内</b>。银行拿到 MLF 的钱，不是直接拿去放贷，而是改善了它的负债结构和流动性，让它<b>敢</b>去放中长期贷款。",
+      "另外，MLF 是央行对银行的债权，银行要付利息。这笔利息是银行的负债成本，会传导到它的贷款定价上——所以 MLF 利率（尤其在过去当政策利率的时候）直接影响银行的资金成本。" ],
+    led:[["角色","中期流动性，支撑中长期信贷"],
+         ["传导","改善负债结构 → 敢放中长期贷款"],
+         ["成本","银行付息 → 进入贷款定价"]],
+    terms:[["期限错配","借短放长。期限差距越大，风险越高。"],
+           ["负债成本","银行融入资金的成本。它决定贷款定价的下限。"]] },
+
+  { t:"到期：还本付息，解押", who:"银行 → 央行",
+    what:[
+      "1 年到了，银行还本金 ＋ 利息，央行解押债券，四笔全部反向记一遍。",
+      "措辞上的区别要记住：<b>MLF 和 7 天逆回购都是「解押」，买断式是「卖回」。</b>券有没有过户，决定了到期用哪个词。",
+      "到期不续作 = 回笼。但 MLF 有个特殊现象：<b>「续作」这个词在它身上用得特别多</b>——月度操作、期限 1 年，每个月都有一批到期、一批新做，市场习惯用「续作率」看央行态度。",
+      "续作率 100% 就是等量滚续、净投放为零；低于 100% 就是净回笼。" ],
+    led:[["到期动作","还本付息、解押（券不过户，所以不是卖回）"],
+         ["银行","准备金 −（本金＋利息）"],
+         ["央行","对其他存款性公司债权 −　准备金 −"],
+         ["续作率","新做 ÷ 到期，用来看央行态度"]],
+    terms:[["续作率","当期新做量 ÷ 到期量。100% 是等量滚续，低于 100% 是净回笼。"]] },
+
+  { t:"2025 年 3 月：为什么要退出政策利率", who:"政策的逻辑",
+    what:[
+      "一个直接原因：<b>政策利率不能太多。</b>当 7 天逆回购、MLF、SLF、LPR 都被叫作「政策利率」时，市场不知道该看哪一个，政策信号就互相打架。",
+      "央行的选择是<b>收敛到一个短端利率</b>：先把 MLF 改成利率招标、退出政策利率角色（2025.3），让 7 天逆回购当唯一锚；2026 年 11 月又把锚从 7 天换成隔夜逆回购。",
+      "这条路径很清楚：<b>政策利率从「中期」往「短端」移。</b>短端利率更容易被央行精确控制，传导也更直接。",
+      "对 MLF 自己来说，退出政策利率不是「降级」，是<b>回归本分</b>：它就是一件中期流动性工具，价格交给市场，工具本身反而更灵活。" ],
+    led:[["2025.3 前","MLF 是政策利率，LPR 锚定它"],
+         ["2025.3","改利率招标，退出政策利率"],
+         ["2026.11","锚进一步从 7 天逆回购切到隔夜逆回购"],
+         ["方向","政策利率从「中期」移向「短端」"]],
+    terms:[["政策利率收敛","把多个政策利率收成一个，避免信号冲突。"],
+           ["短端锚","用最短期限的利率当基准，央行控制力最强。"]] },
+
+  { t:"和买断式逆回购的分工：为什么两个都要", who:"最容易混的一对",
+    what:[
+      "这两件很容易混，因为都是「央行给银行的中期钱」。但三个维度完全不同：",
+      "<b>期限</b>：MLF 1 年，买断式 3–6 个月。",
+      "<b>押品</b>：MLF 质押、<b>占用</b>押品；买断式过户、<b>释放</b>押品。",
+      "<b>定价</b>：MLF 历史上是央行定价，现在是利率招标；买断式从一开始就是利率招标。",
+      "所以它们不是替代关系，是<b>互补</b>：银行要 1 年的钱、押品还算充裕，走 MLF；要 3–6 个月、押品紧，走买断式。",
+      "2024 年 10 月买断式启用后，MLF 余额在压降，一部分需求确实被接走了——但 MLF 没有被取代，它仍是最长的常规投放工具。" ],
+    led:[["期限","MLF 1 年；买断式 3–6 个月"],
+         ["押品","MLF 占用；买断式释放"],
+         ["定价","MLF 曾央行定价；买断式一直市场报价"],
+         ["关系","互补，不是替代"]],
+    terms:[["互补","两件工具覆盖不同需求，不是谁取代谁。"]] },
+
+  { t:"四件工具，一张表看清", who:"收尾",
+    what:[
+      "把这四件并排放，差别一眼就出来。真正的区别不在「放不放水」，而在<b>期限、押品怎么处理、价格谁定</b>这三件事上。" ],
+    led:[["7 天 / 隔夜逆回购","固定利率、数量招标｜≤7 天｜质押不过户｜价格即政策利率"],
+         ["MLF","曾固定利率，2025.3 起利率招标｜1 年｜质押占用｜已退出政策利率"],
+         ["买断式逆回购","固定数量、利率招标｜3M / 6M｜买断过户｜市场化定价"],
+         ["买卖国债","央行直接买卖｜无期限｜过户｜永久性投放或回笼"]],
+    key:"一句话：<b>MLF 是央行给银行的「一年期中期资金」，用质押方式发放，曾经是 LPR 的锚。</b>2025 年 3 月改利率招标后，它退出了政策利率角色，回归成一件普通的中期流动性工具——今天看它，看的是<b>操作量和续作率</b>，不是利率。",
+    terms:[] }
+];
+/* ============================ PSL 全流程 ============================ */
+const PSL = [
+  { t:"先看全局：它到底在干什么", who:"央行 ↔ 三家政策性银行",
+    what:[
+      "一句话：央行把<b>3 到 5 年</b>的钱借给<b>三家政策性银行</b>（国开行、农发行、进出口行），用高质量资产做质押，<b>并且指定用途</b>——棚改、水利、保交楼、城中村改造。",
+      "它 2014 年 4 月创设，比 MLF 还早半年。",
+      "它最特别的地方不是期限，是<b>对象只有 3 家、钱带用途</b>。所以它更像<b>准财政</b>，不像货币政策。",
+      "四个问题，答案是——" ],
+    led:[
+      ["① 谁欠谁","政策性银行欠央行。资产端同样记「对其他存款性公司债权」"],
+      ["② 押品在哪","押在央行，不过户。高质量资产：高等级债券、优质信贷资产"],
+      ["③ 钱在谁账上","政策性银行在央行的准备金账户"],
+      ["④ 到期怎么反做","还本付息、解押"] ],
+    terms:[
+      ["抵押补充贷款","PSL 的中文全名。「补充」指它是政策性银行发债之外的补充资金来源。"],
+      ["政策性银行","国开行、农发行、进出口行。不吸收公众存款，靠发债筹资、按国家意志放贷。"],
+      ["准财政","形式上是贷款，实质上是财政性的资金安排——带用途、带补贴、不看利润。"]] },
+
+  { t:"它和 MLF 最大的不同：只给 3 家", who:"对象",
+    what:[
+      "MLF 给的是<b>一级交易商</b>，约 50 家，大行、股份行、城商行、券商都有。",
+      "PSL 只给<b>三家政策性银行</b>：国家开发银行、中国农业发展银行、中国进出口银行。",
+      "这三家不是商业银行，<b>不吸收公众存款</b>，靠发债筹钱、按国家意志放贷。",
+      "所以 PSL 是一根<b>绕过商业银行</b>的管子：央行 → 政策性银行 → 项目，中间没有商业银行这一环。这是它和这个页面上所有其他投放工具最不一样的地方。",
+      "顺带说一句：这张资金流向图上没有单独画「政策性银行」这个方块，它藏在「央行 → 银行」那根箭头里面。" ],
+    led:[["对象","国开行、农发行、进出口行（仅 3 家）"],
+         ["特征","不吸收公众存款，靠发债筹资"],
+         ["结构","绕开商业银行，直达项目"]],
+    terms:[["开发性金融","国开行的定位：用市场化方式做政策性业务。"]] },
+
+  { t:"它为什么出现：2014 年的棚改", who:"背景",
+    what:[
+      "2014 年前后，中国要大规模推进<b>棚户区改造</b>。这是典型的政策性业务：周期长（3–5 年）、利润薄、商业银行不愿意做。",
+      "但钱从哪来？国开行可以发债，可债券规模有限、成本也不低。<b>央行需要一个能给政策性银行提供长期低成本资金的工具。</b>",
+      "PSL 就是为此设计的：期限 3–5 年，利率由央行直接定，通常低于同期限市场利率。",
+      "所以它的诞生逻辑和 MLF 不同：<b>MLF 解决的是「银行缺中期资金」，PSL 解决的是「国家项目缺钱」。</b>" ],
+    led:[["创设","2014 年 4 月"],
+         ["最初用途","棚户区改造"],
+         ["期限","3–5 年"]],
+    terms:[["棚改","棚户区改造。拆除老旧居住区，安置居民，通常由地方政府主导、政策性银行配资。"]] },
+
+  { t:"定价：央行直接定，不招标", who:"价格机制",
+    what:[
+      "PSL 的利率是<b>央行直接定的</b>，不招标、不竞价。这一点它比 MLF 更「计划」。",
+      "定价通常低于同期限市场利率——这是它「准财政」属性的体现：本质是<b>补贴性资金</b>，不是市场化融资。",
+      "所以 PSL 利率<b>不是政策利率</b>，也不承担政策信号功能。它就是一个<b>成本参数</b>：央行想支持哪个领域，就把这个领域的资金成本降下来。",
+      "2024 年为支持「三大工程」，PSL 利率还下调过，同时重启投放。" ],
+    led:[["定价方式","央行直接定价"],
+         ["相对水平","通常低于同期限市场利率"],
+         ["性质","补贴性资金成本，不是政策信号"]],
+    terms:[["补贴性定价","利率低于市场，差额相当于财政补贴，只不过走的是贷款的形式。"],
+           ["三大工程","保障性住房建设、城中村改造、「平急两用」公共基础设施建设。"]] },
+
+  { t:"结算：钱怎么记", who:"央行 ↔ 政策性银行",
+    what:[
+      "结算时，央行资产端「对其他存款性公司债权」＋，负债端「准备金」＋。政策性银行反过来。",
+      "注意：PSL 和 MLF、逆回购<b>记在同一个科目</b>——因为政策性银行在央行的统计口径里属于存款性公司。",
+      "所以你在央行资产负债表上同样分不出哪一笔是 PSL。要看它的规模，得看央行每月单独公布的<b>抵押补充贷款余额</b>。",
+      "这也是为什么 PSL 有独立的月度数据，而逆回购没有——它期限长、余额稳定，值得单独统计。" ],
+    led:[["央行 · 资产","对其他存款性公司债权 ＋"],
+         ["央行 · 负债","准备金 ＋"],
+         ["专项数据","抵押补充贷款余额（按月公布）"]],
+    terms:[["存款性公司口径","央行统计里的机构分类。政策性银行被算在内，所以和 MLF 同科目。"]] },
+
+  { t:"质押：真正的约束不是押品", who:"机构的代价",
+    what:[
+      "PSL 是<b>质押式</b>：政策性银行把高质量资产押给央行，券同样<b>不过户</b>，到期解押。",
+      "合格押品包括高等级债券、优质信贷资产等——比 MLF 的押品范围更宽，因为政策性银行的资产结构和商业银行本来就不一样。",
+      "但对政策性银行来说，<b>押品不是主要约束</b>——它们手里有大量优质贷款资产。",
+      "真正的约束是<b>额度和用途</b>：央行给不给、给多少、准不准用在这个项目上。这是 PSL 和所有市场化工具最根本的区别。" ],
+    led:[["方式","质押式，券不过户"],
+         ["押品","高等级债券、优质信贷资产"],
+         ["真正的约束","额度与用途，不是押品"]],
+    terms:[["优质信贷资产","已经发放的、质量好的贷款，可以作为质押品。"],
+           ["额度管理","央行按项目、按机构核定规模，不是谁想要就能拿。"]] },
+
+  { t:"钱到了政策性银行，然后呢", who:"用途",
+    what:[
+      "政策性银行拿到 PSL 的钱，不是拿去拆借、也不是拿去配债，而是<b>按指定用途发放项目贷款</b>。",
+      "贷款对象是：地方政府的棚改项目、水利工程、保障性住房、城中村改造、「平急两用」基础设施。",
+      "所以这笔钱的路径是：<b>央行 → 政策性银行 → 项目主体 → 施工方/拆迁户</b>。中间<b>没有商业银行</b>。",
+      "这也意味着：<b>PSL 投出去的钱是被「指定」了的。</b>它不会像 MLF 那样躺在银行账上不动——只要投放，就一定有对应的项目。" ],
+    led:[["用途","棚改、水利、保交楼、城中村改造、三大工程"],
+         ["路径","央行 → 政策性银行 → 项目主体"],
+         ["特点","钱带用途，不会闲置在银行账上"]],
+    terms:[["项目贷款","对应具体工程的贷款，有明确的用途和还款来源。"]] },
+
+  { t:"棚改货币化：一条完整的链", who:"它最有名的一次应用",
+    what:[
+      "这是理解 PSL「准财政」性质最好的例子。",
+      "链条是这样的：<b>央行给国开行 PSL → 国开行给地方棚改项目放贷 → 地方政府拆迁 → 居民拿到货币补偿 → 居民去买房 → 开发商回款 → 政府卖地还贷。</b>",
+      "注意中间那两步：<b>居民拿到的是「钱」，不是安置房。</b>这叫<b>货币化安置</b>。",
+      "结果是：PSL 创造的钱，直接变成了<b>购房需求</b>。2015–2018 年三四线城市房地产去库存、房价上涨，这条链是重要的资金源头之一。",
+      "这也是 PSL 一直被讨论的原因：<b>它投放的基础货币带有极强的定向性，能直接影响某一类资产的价格。</b>" ],
+    led:[["第 1 步","央行 → 国开行（PSL）"],
+         ["第 2 步","国开行 → 地方棚改项目（贷款）"],
+         ["第 3 步","拆迁 → 居民拿货币补偿，不是房子"],
+         ["第 4 步","居民购房 → 开发商回款 → 政府卖地还贷"],
+         ["效应","PSL 的钱直接变成购房需求"]],
+    terms:[["货币化安置","不给安置房、给现金，让居民自己去市场上买房。这是 PSL 影响楼市的关键一环。"],
+           ["去库存","把积压的商品房卖掉。货币化安置是 2015 年后去库存的主要抓手之一。"]] },
+
+  { t:"它怎么影响 M2：和普通贷款不一样", who:"传导路径",
+    what:[
+      "普通贷款：银行放贷 → 企业存款增加 → M2 增加。",
+      "PSL 的路径：央行投放 → 政策性银行 → 项目主体 → 施工方/拆迁户 → <b>这些人的存款增加 → M2 增加</b>。",
+      "所以 PSL 也创造 M2，但<b>创造的位置不同</b>：普通贷款先在企业端，PSL 先在政府项目和居民端。",
+      "关键区别在<b>谁决定钱去哪</b>：普通贷款由银行的客户决定，PSL 由政策和项目决定。",
+      "这也解释了为什么 PSL 常被叫作<b>结构性工具</b>——它不只调总量，还调结构。" ],
+    led:[["普通贷款","银行 → 企业，M2 增加在企业端"],
+         ["PSL","央行 → 政策性银行 → 项目/居民，M2 增加在项目端"],
+         ["谁决定去向","普通贷款看客户，PSL 看政策和项目"]],
+    terms:[["M2 派生路径","钱从谁手里变成存款，决定了 M2 长在哪个部门。"],
+           ["结构性工具","不只调总量、还调投向的工具。PSL、再贷款都算。"]] },
+
+  { t:"2024 年之后：三大工程", who:"它的现状",
+    what:[
+      "PSL 沉寂过一段时间——棚改高峰过去后，余额从峰值回落。",
+      "2024 年它重新被启用，投向是<b>三大工程</b>：保障性住房建设、城中村改造、「平急两用」公共基础设施建设，同期 PSL 利率也下调过。",
+      "这个组合很典型：<b>重启投放 ＋ 降低利率 ＝ 定向刺激。</b>",
+      "所以 PSL 是一个<b>可开可关</b>的工具：国家有需要时开闸，项目做完就自然回落。这也是它余额波动很大的原因。" ],
+    led:[["峰值","3.5 万亿元量级（2019 年前后）"],
+         ["2024 年","重启投向三大工程，利率下调"],
+         ["特征","可开可关，余额随项目周期波动"]],
+    terms:[["可开可关","没有固定操作节奏，按项目需要启动或停摆。"]] },
+
+  { t:"和 MLF 的分工：一个给银行，一个给项目", who:"最容易混的一对",
+    what:[
+      "两件都是中期、都质押、都记在「对其他存款性公司债权」，很容易混。差别在<b>对象和用途</b>。",
+      "<b>MLF</b>：给约 50 家一级交易商，<b>不指定用途</b>。钱进了银行，怎么用由银行决定——可能放贷，也可能买债、拆借。",
+      "<b>PSL</b>：只给 3 家政策性银行，<b>用途指定</b>。钱必须进项目，不会躺在账上。",
+      "所以判断宽松效果时：MLF 是「<b>给银行补水</b>」，要看银行愿不愿意放贷；PSL 是「<b>给项目送钱</b>」，投放即形成支出。",
+      "<b>后者对实体的传导更直接，但也更挑项目</b>——没有合格项目，PSL 也投不出去。" ],
+    led:[["对象","MLF 约 50 家；PSL 仅 3 家"],
+         ["用途","MLF 不指定；PSL 指定"],
+         ["传导","MLF 看银行意愿；PSL 投放即支出"],
+         ["约束","PSL 受项目储备约束"]],
+    terms:[["项目储备","地方提前准备好的、符合条件可以马上开工的项目。没有储备，钱也投不出去。"]] },
+
+  { t:"六件工具，一张表看清", who:"收尾",
+    what:[
+      "把六件并排放，差别一眼就出来。真正的区别不在「放不放水」，而在<b>期限、押品怎么处理、价格谁定、钱有没有指定用途</b>这四件事上。" ],
+    led:[["7 天 / 隔夜逆回购","固定利率、数量招标｜≤7 天｜质押｜价格即政策利率"],
+         ["买断式逆回购","固定数量、利率招标｜3M / 6M｜买断过户｜市场化定价"],
+         ["MLF","固定数量、利率招标｜1 年｜质押｜已退出政策利率"],
+         ["PSL","央行定价｜3–5 年｜质押｜仅 3 家政策行，用途指定"],
+         ["再贷款","央行定价｜通常 1 年｜定向｜银行转贷，额度不等于用掉"],
+         ["降准","不投放，只放大乘数｜永久｜——｜动的是闸门，不是水源"]],
+    key:"一句话：<b>PSL 是央行给三家政策性银行的长期低成本资金，用途被指定。</b>它绕开商业银行、直达项目，所以常被叫作「准财政」。看它不要看利率（央行定的、不是政策信号），要看<b>余额的增减和投向</b>——余额涨，说明国家在推某个领域。",
+    terms:[] }
+];
+/* ============================ 再贷款全流程 ============================ */
+const RELEND = [
+  { t:"先看全局：它到底在干什么", who:"央行 ↔ 各类银行",
+    what:[
+      "一句话：央行<b>把钱借给银行</b>，让银行拿去发放<b>指定领域</b>的贷款——支农、支小、碳减排、科技创新、保障性住房。",
+      "它和其他几件工具最大的不同，不在期限、也不在押品，而在<b>顺序</b>：<b>银行先放贷，央行后给钱。</b>这叫「先贷后借」。",
+      "所以再贷款不是「央行推着银行去放贷」，而是「银行放了贷，央行给它补资金、补成本」。",
+      "四个问题，答案是——" ],
+    led:[
+      ["① 谁欠谁","银行欠央行。资产端记「对其他存款性公司债权」"],
+      ["② 押品在哪","<b>通常没有押品</b>——信用发放。这是它和 MLF、PSL 最直观的差别"],
+      ["③ 钱在谁账上","银行的准备金账户，但钱是<b>事后</b>才到的"],
+      ["④ 到期怎么反做","还本付息。没有押品，所以也没有「解押」这一步"] ],
+    terms:[
+      ["再贷款","央行对金融机构发放的贷款。名字里的「再」，是相对商业银行对企业的「贷款」而言。"],
+      ["先贷后借","银行先发放合格贷款，再向央行申请资金。再贷款的标志性机制。"],
+      ["结构性工具","不调总量、只调投向的工具。"]] },
+
+  { t:"它是最老的工具：两个时代要分清", who:"历史",
+    what:[
+      "再贷款不是新东西。上世纪八九十年代，它就是央行投放基础货币的主渠道——那时叫<b>政策性再贷款</b>，钱拿去收粮棉油、搞外贸、搞基建。",
+      "1994 年之后外汇占款起来，央行靠买外汇<b>被动</b>投放，再贷款的地位就下来了。",
+      "2014 年外汇占款见顶回落，它又以<b>结构性工具</b>的身份回来：不再是「总量放水」，而是「定向补贴」。",
+      "所以看再贷款，先分清两个时代：<b>老再贷款是总量工具，新再贷款是结构工具。</b>这一节讲的是后者。" ],
+    led:[["上世纪 80–90 年代","政策性再贷款，基础货币的主渠道"],
+         ["1994 年后","外汇占款接棒，地位下降"],
+         ["2014 年后","以结构性工具回归"]],
+    terms:[["政策性再贷款","早期用于粮棉油收购、外贸、基建的指令性贷款，是计划色彩最重的工具。"]] },
+
+  { t:"对象最宽：谁都能申请", who:"覆盖范围",
+    what:[
+      "PSL 只给 3 家政策性银行；MLF 只给约 50 家一级交易商。",
+      "再贷款的对象是<b>各类银行</b>：大行、股份行、城商行、农商行、村镇银行都能申请，只要它有符合条件的贷款。",
+      "这个设计是有意的：支农支小的贷款主要由<b>农商行、村镇银行</b>在放，如果只给大行，政策就到不了县域。",
+      "所以再贷款是这几件工具里<b>覆盖机构最广</b>的一件——它的「毛细血管」属性最强。" ],
+    led:[["对象","各类银行（大行、股份行、城商行、农商行、村镇银行）"],
+         ["对比","PSL 仅 3 家；MLF 约 50 家一级交易商"],
+         ["为什么这么宽","支农支小靠小银行，只给大行就到不了县域"]],
+    terms:[["支农支小","支持农业、小微企业的贷款。额小、面广、缺押品，商业银行天然不愿意做。"]] },
+
+  { t:"先贷后借：顺序和其他工具完全相反", who:"核心机制",
+    what:[
+      "这是再贷款的核心，也是最容易被搞错的地方。",
+      "MLF、PSL、逆回购都是<b>央行先给钱</b>，银行拿到钱再去找用途。",
+      "再贷款反过来：<b>银行先用自己的资金发放符合条件的贷款，然后拿贷款台账去央行申请再贷款资金。</b>",
+      "所以央行给的其实是<b>「报销」</b>：你先垫钱干了这件事，我按比例补给你。",
+      "这个顺序带来一个直接后果：<b>再贷款跟着信贷走，不推着信贷走。</b>它没法让一家本来不想放贷的银行去放贷。" ],
+    led:[["MLF / PSL / 逆回购","央行先给钱 → 银行找用途"],
+         ["再贷款","银行先放贷 → 央行后补钱"],
+         ["本质","报销制，不是预付款"]],
+    terms:[["报销制","先支出、后核销。再贷款的资金流向和它一模一样。"]] },
+
+  { t:"额度 ≠ 用掉：这个工具最常被误读的地方", who:"量的问题",
+    what:[
+      "央行公布「新增支农支小再贷款额度 5000 亿元」，很多人以为这就是投放了 5000 亿。<b>不是。</b>",
+      "额度只是<b>上限</b>：告诉银行「你可以来报销这么多」。真正用掉多少，取决于银行发了多少符合条件的贷款。",
+      "而且报销通常还<b>打折</b>：比如按贷款余额的 60%、100% 报销，不是全额。",
+      "所以再贷款的<b>实际投放量，永远小于公告的额度</b>。这也是这个工具常被说「叫好不叫座」的原因——额度给了，银行不一定用得完。",
+      "看真实规模，要看央行的<b>再贷款余额</b>，不是看新闻里的额度数字。" ],
+    led:[["额度","上限，不是投放量"],
+         ["实际投放","≤ 额度，取决于贷款发放"],
+         ["报销比例","按贷款余额的一定比例，常打折"],
+         ["看哪里","再贷款余额，不是公告额度"]],
+    terms:[["额度","央行批准的最高可用规模。批了不等于用了。"],
+           ["报销比例","符合条件贷款中，能被再贷款覆盖的比例。"]] },
+
+  { t:"信用发放：没有押品", who:"形式",
+    what:[
+      "MLF 要质押，PSL 要质押，逆回购要质押。再贷款<b>通常不需要</b>——它是信用发放。",
+      "「再贷款」这个名字的本意就是：央行对银行的<b>信用贷款</b>，靠的是银行信用，不是押品。",
+      "为什么可以不要押品？因为风险被两层挡住了：① 贷款已经发出去了，有真实的借款人和用途；② 央行要逐笔核对台账，不合格的不给报销。",
+      "所以再贷款的风险控制，不在押品，在<b>事后核查</b>。",
+      "这也是它和小微、三农贷款天然匹配的原因——这类贷款本来就没多少合格押品。" ],
+    led:[["方式","信用发放，通常无押品"],
+         ["风险控制","台账逐笔核查，不是押品"],
+         ["天然匹配","小微、三农贷款本来就缺押品"]],
+    terms:[["信用发放","不要求抵押或质押，靠借款人信用。央行对银行的再贷款同理。"],
+           ["台账核查","央行逐笔核对银行发放的贷款是否符合条件。"]] },
+
+  { t:"定价最低：一条补贴链条", who:"价格机制",
+    what:[
+      "再贷款的利率由央行直接定，通常<b>显著低于</b>市场利率。",
+      "但它的目的不是「让银行赚钱」，而是<b>把银行的资金成本压下来</b>，让它愿意用更低的利率去放小微、三农贷款。",
+      "所以这是一条<b>补贴链条</b>：央行补贴银行 → 银行补贴借款人。",
+      "这里有个关键问题：中间那一层能不能传导下去，取决于银行有没有真的降利率。",
+      "所以近年不少专项再贷款都带<b>利率要求</b>——不光要投对方向，还要证明利率真的降了。否则补贴就停在银行这一层。" ],
+    led:[["定价","央行直接定，显著低于市场利率"],
+         ["逻辑","补贴银行成本 → 银行降贷款利率"],
+         ["风险","补贴可能停在银行这一层"],
+         ["对策","部分专项工具带利率要求"]],
+    terms:[["补贴链条","央行 → 银行 → 借款人的成本让渡。每一层都可能打折。"]] },
+
+  { t:"结算：钱在贷款之后才到", who:"央行 ↔ 银行",
+    what:[
+      "因为「先贷后借」，结算发生在<b>贷款发放之后</b>。",
+      "央行资产端「对其他存款性公司债权」＋，负债端「准备金」＋；银行准备金 ＋，对央行负债 ＋。",
+      "和 MLF、PSL 记在<b>同一个科目</b>。所以央行资产负债表上同样分不出哪一笔是再贷款。",
+      "但有一个区别值得注意：再贷款投放时，<b>M2 早就已经增加了</b>——贷款发放那一刻就派生了存款。所以这笔结算，只是把银行垫付的准备金补回来。" ],
+    led:[["央行 · 资产","对其他存款性公司债权 ＋"],
+         ["央行 · 负债","准备金 ＋"],
+         ["时点","贷款发放之后才结算"],
+         ["M2","早已增加，这一步只是补准备金"]],
+    terms:[["追认式投放","先发生后确认，和预付款相反。"]] },
+
+  { t:"它不创造 M2，只补偿银行", who:"最深的一层区别",
+    what:[
+      "这是再贷款和其他工具最深的一层差别，值得单独说。",
+      "MLF 投放 → 银行准备金增加 → 银行有能力放贷 → 放贷时派生 M2。<b>顺序是：先有基础货币，后有 M2。</b>",
+      "再贷款 → 银行已经放贷 → M2 已经派生 → 央行补准备金。<b>顺序是：先有 M2，后有基础货币。</b>",
+      "所以严格说，<b>再贷款不「创造」M2，它补偿的是银行的资金成本。</b>",
+      "这个区别有实际意义：如果银行本来就不想放贷，给再多再贷款额度也没用——因为前提是「贷款已经发生」。" ],
+    led:[["MLF 等","基础货币 → 信贷 → M2（先有钱）"],
+         ["再贷款","信贷 → M2 → 基础货币（先有贷款）"],
+         ["含义","再贷款不创造 M2，只补偿成本"]],
+    terms:[["派生顺序","谁先谁后，决定了这个工具能不能「推」信贷。"]] },
+
+  { t:"专项再贷款：一件工具，一整族", who:"它的现状",
+    what:[
+      "今天的再贷款不是一个工具，是一<b>族</b>工具。央行按领域分别设额度、分别定价。",
+      "常见的几类：支农再贷款、支小再贷款（县域和小微）、碳减排支持工具（清洁能源）、科技创新再贷款、设备更新改造专项再贷款、保障性住房再贷款。",
+      "每一类的条件都不同：支持的贷款类型、报销比例、利率要求、额度上限，全都不一样。",
+      "所以新闻里说「再贷款」，你要多问一句：<b>哪一类再贷款？</b>不同类别的政策含义差别很大。" ],
+    led:[["支农 / 支小","县域、小微，最经典的两类"],
+         ["碳减排支持工具","清洁能源、节能环保"],
+         ["科技创新再贷款","科技型中小企业"],
+         ["设备更新改造","制造业设备更新"],
+         ["保障性住房","收购存量商品房用作保障房"]],
+    terms:[["专项再贷款","按特定领域设立的再贷款，各有各的额度、比例和条件。"]] },
+
+  { t:"和其他工具的分工：它是唯一「跟着贷款走」的", who:"定位",
+    what:[
+      "把几件放在一起，再贷款的定位最清楚：<b>它是唯一「跟着贷款走」的工具。</b>",
+      "逆回购管水位，买断式管中期和押品，MLF 给银行补水，PSL 给项目送钱，<b>再贷款给已经发生的贷款报销。</b>",
+      "所以判断宽松力度时，再贷款不能和其他工具直接加在一起算——它不增加银行的<b>放贷能力</b>，只降低银行的<b>放贷成本</b>。",
+      "这也解释了它的政策定位：<b>它是「调结构」的工具，不是「调总量」的工具。</b>总量要靠降准、MLF、逆回购。" ],
+    led:[["逆回购","管水位（短期总量）"],
+         ["买断式","管中期 ＋ 释放押品"],
+         ["MLF","给银行补水（中期总量）"],
+         ["PSL","给项目送钱（准财政）"],
+         ["再贷款","给已发生的贷款报销（调结构）"]],
+    terms:[["调结构 / 调总量","前者改钱去哪，后者改钱多少。再贷款属于前者。"]] },
+
+  { t:"六件工具，一张表看清", who:"收尾",
+    what:[
+      "把六件并排放，差别一眼就出来。真正的区别在四件事上：<b>期限、押品怎么处理、价格谁定、钱有没有指定用途。</b>" ],
+    led:[["隔夜 / 7 天逆回购","固定利率、数量招标｜≤7 天｜质押｜价格即政策利率"],
+         ["买断式逆回购","固定数量、利率招标｜3M / 6M｜买断过户｜市场化定价"],
+         ["MLF","固定数量、利率招标｜1 年｜质押｜已退出政策利率"],
+         ["PSL","央行定价｜3–5 年｜质押｜仅 3 家政策行，用途指定"],
+         ["再贷款","央行定价｜通常 1 年｜信用，无押品｜先贷后借，调结构"],
+         ["降准","不投放，只放大乘数｜永久｜——｜动的是闸门，不是水源"]],
+    key:"一句话：<b>再贷款是央行对银行的信用贷款，专款专用，而且「先贷后借」——银行先放贷，央行后报销。</b>所以它不推着信贷走，只跟着信贷走；不创造 M2，只补偿银行的资金成本。看它别看公告额度，要看<b>再贷款余额</b>。",
+    terms:[] }
+];
+/* ============================ 降准全流程 ============================ */
+const RRRFLOW = [
+  { t:"先看全局：它不搬钱，只改一个比率", who:"央行 → 全部存款类机构",
+    what:[
+      "一句话：降准不是「央行给银行钱」，是<b>央行把银行必须锁起来的比例调低一点</b>。锁得少了，能动用的就多了。",
+      "所以它和前面五件是<b>完全不同的物种</b>：没有借、没有还、没有押品、没有到期日。它改的是一个<b>比率</b>。",
+      "最反直觉的一点：<b>央行资产负债表上，资产端和负债端一个数字都不变。</b>变的只是负债端内部的结构——法定准备金少了，超额准备金多了。",
+      "四个问题，答案全都不一样——" ],
+    led:[
+      ["① 谁欠谁","<b>不产生新的债权债务</b>。银行不欠央行一分钱"],
+      ["② 押品在哪","<b>没有押品</b>。降准不需要任何担保"],
+      ["③ 钱在谁账上","钱<b>一直在央行账上</b>，只是从「法定」抽屉挪到「超额」抽屉"],
+      ["④ 到期怎么反做","<b>没有到期</b>。它是永久的，除非央行再把准备金率提回去"] ],
+    terms:[
+      ["法定准备金","按存款 × 准备金率强制锁定在央行、不能动用的部分。"],
+      ["超额准备金","超过法定要求、银行自愿多存的部分。可以随时动用。"],
+      ["货币乘数","同一笔基础货币能支撑多少存款。降准动的就是这个。"]] },
+
+  { t:"两个抽屉：法定与超额", who:"准备金的结构",
+    what:[
+      "银行吸收存款后，必须把一部分存在央行、不能动用。这部分叫<b>法定准备金</b>，比例就是<b>存款准备金率</b>。",
+      "超过法定要求、自愿多存的那部分，叫<b>超额准备金</b>——这部分银行可以随时动用，用于清算、放贷、买债。",
+      "两者合起来，就是银行在央行的<b>准备金存款</b>，也是基础货币的主体（基础货币 ＝ 流通中现金 ＋ 准备金存款）。",
+      "关键：<b>这两笔钱躺在央行同一个账户里，物理上没有区别。</b>区别只在「能不能动」这一条规则上。" ],
+    led:[["法定准备金","按存款 × 准备金率强制锁定，<b>不能动</b>"],
+         ["超额准备金","超过法定要求的部分，<b>可以动</b>"],
+         ["合计","银行在央行的准备金存款（基础货币的主体）"]],
+    terms:[["存款准备金率","存款里必须锁进央行的比例。它是个百分比，不是一笔钱。"]] },
+
+  { t:"降准那一刻：换个抽屉", who:"单家银行",
+    what:[
+      "假设一家银行吸收 <b>1000 亿元</b>存款，准备金率 <b>7.0%</b>，它在央行一共存了 <b>100 亿元</b>准备金。",
+      "降准前：法定准备金 ＝ 1000 × 7.0% ＝ <b>70 亿</b>；超额准备金 ＝ 100 − 70 ＝ <b>30 亿</b>。",
+      "降准 0.5 个百分点，准备金率变成 6.5%：法定准备金 ＝ 1000 × 6.5% ＝ <b>65 亿</b>；超额准备金变成 100 − 65 ＝ <b>35 亿</b>。",
+      "<b>总准备金还是 100 亿，一分没多。</b>只是有 5 亿元从「法定」抽屉挪到了「超额」抽屉。",
+      "这就是降准的全部动作。<b>它不创造任何新钱，只是解除了对已有钱的锁定。</b>" ],
+    led:[["降准前","法定 70 亿　＋　超额 30 亿　＝　100 亿"],
+         ["降准后","法定 65 亿　＋　超额 35 亿　＝　100 亿"],
+         ["变化","法定 −5 亿，超额 ＋5 亿，<b>总额不变</b>"]],
+    terms:[["解冻","把原本锁死的钱变成可以动用的钱。降准就是一次解冻。"]] },
+
+  { t:"变的是什么：可放贷的钱多了", who:"第一步效应",
+    what:[
+      "钱的总数没变，但<b>能拿去放贷的钱变了</b>：从 30 亿变成 35 亿。",
+      "这 5 亿放出去，会变成别人的存款；那家银行再留 6.5%、把剩下的再放出去……一轮一轮下来，存款总额会被放大。",
+      "放大的倍数叫<b>货币乘数</b>，最粗略的算法就是 1 ÷ 准备金率。",
+      "准备金率从 7.0% 降到 6.5%，乘数从 <b>14.3 倍</b>升到 <b>15.4 倍</b>——每 100 元准备金能支撑的存款，从 1429 元变成 1538 元。",
+      "这才是降准真正动的东西：<b>它调的不是水量，是水能放大多少倍。</b>" ],
+    led:[["准备金率 7.0%","乘数 14.3 倍　100 元准备金支撑 1429 元存款"],
+         ["准备金率 6.5%","乘数 15.4 倍　100 元准备金支撑 1538 元存款"],
+         ["真正变的","<b>乘数</b>，不是基础货币"]],
+    terms:[["派生","一笔贷款变成别人的存款，那家银行再贷出去，存款一轮轮增加。"]] },
+
+  { t:"放大到全体系：降 0.5 个点释放多少", who:"全体系算例",
+    what:[
+      "假设存款总额 <b>200 万亿元</b>，准备金率从 7.0% 降到 6.5%。",
+      "法定准备金从 200 × 7.0% ＝ <b>14.0 万亿</b>，降到 200 × 6.5% ＝ <b>13.0 万亿</b>。",
+      "<b>释放 1 万亿元</b>——这就是新闻里常说的「降准 0.5 个百分点释放约 1 万亿元长期资金」。",
+      "注意用词：<b>「长期资金」</b>。因为这 1 万亿不需要还，没有到期日。",
+      "而且这 1 万亿是<b>从法定准备金转过来的</b>，不是央行新印的——央行资产负债表总规模不变。" ],
+    led:[["降准前","法定准备金 14.0 万亿"],
+         ["降准后","法定准备金 13.0 万亿"],
+         ["释放","<b>1.0 万亿</b>转为超额准备金"],
+         ["央行总资产","<b>不变</b>"]],
+    terms:[["释放长期资金","降准的标准说法。重点在「长期」——不用还、无到期日。"]] },
+
+  { t:"它「猛」在哪：期限是永久的", who:"和逆回购对比",
+    what:[
+      "和逆回购比，降准的杀伤力不在数量，在<b>期限</b>。",
+      "逆回购 7 天到期就要还。银行拿到这笔钱，不敢拿去放 3 年的贷款——万一到期续不上，就出事了。所以逆回购的钱只能做短期打算。",
+      "降准释放的钱<b>不用还、没有到期日</b>。银行可以安心拿它去配中长期资产、放中长期贷款。",
+      "这就是为什么同样规模，降准对信贷的刺激远强于逆回购。",
+      "也是为什么央行强调降准释放的是「<b>长期资金</b>」——这三个字是重点。" ],
+    led:[["逆回购","7 天到期，只能做短期打算"],
+         ["降准","永久，可支撑中长期信贷"],
+         ["差别","不在数量，在<b>期限</b>"]],
+    terms:[["期限匹配","借短放长有风险。资金的期限决定了它能支撑什么资产。"]] },
+
+  { t:"它也「钝」在哪", who:"代价",
+    what:[
+      "降准是<b>全局、一次性、不可逆</b>的，这三个词决定了它是「钝器」。",
+      "<b>全局</b>：一降全降，没法只给某个行业。钱最后流向哪里，由银行自己决定。",
+      "<b>一次性</b>：0.5 个百分点就是 0.5 个百分点，没有「小幅试一下」的空间。",
+      "<b>不可逆</b>：降下去容易，提上来难——一提准，市场会解读为强力收紧，银行也会立刻承压。",
+      "所以央行更愿意用逆回购、MLF、再贷款这些「可进可退」的工具做日常调节，把降准留到关键时候。" ],
+    led:[["全局","一降全降，不挑对象"],
+         ["一次性","没有微调空间"],
+         ["不可逆","降容易，提很难"]],
+    terms:[["钝器","力量大但不精准的工具。降准是典型的钝器。"]] },
+
+  { t:"为什么央行现在不轻易动它", who:"现实约束",
+    what:[
+      "还有一个现实约束：<b>空间在收窄</b>。",
+      "2011 年大型银行存准率峰值 21.5%，现在加权平均已经降到 6% 出头。降准的「弹药」不像过去那么充足了。",
+      "而且降准有副作用：释放的流动性如果进不了实体，可能推到资产价格上；对汇率也有压力。",
+      "所以近年央行的做法是<b>「降准 ＋ 结构性工具」搭配</b>：降准给总量、给长期资金，再贷款、PSL 定向把钱引到该去的地方。",
+      "这也是为什么你现在看到的降准，往往和降息、结构性工具一起出现——单靠它已经不够了。" ],
+    led:[["2011 年峰值","大型银行 21.5%"],
+         ["现在","加权平均 6% 出头"],
+         ["约束","空间收窄，且有副作用"],
+         ["做法","降准 ＋ 结构性工具搭配"]],
+    terms:[["政策空间","还能降多少。空间越小，工具越珍贵。"]] },
+
+  { t:"「降准＝放水」错在哪", who:"最常见的误读",
+    what:[
+      "最常见的误读：降准就是央行放水。",
+      "准确地说，<b>降准松的是闸门，不是水源。</b>基础货币一分没多，多的是「这些基础货币能支撑多少存款」的能力。",
+      "打个比方：水库的水没变，只是把泄洪口的开度调大了一点。水流不流得出去、流多快，还取决于下游要不要水。",
+      "所以降准之后，如果银行不放贷、企业不借钱，钱就趴在超额准备金里，M2 也不会怎么涨。这就是<b>「宽货币、紧信用」</b>——闸门开了，水没流出去。",
+      "<b>真正决定 M2 的，是信贷需求，不是准备金率。</b>准备金率给的只是一个「可以」的许可。" ],
+    led:[["降准","松开闸门（乘数）"],
+         ["基础货币","<b>不变</b>（水源没变）"],
+         ["M2 能不能涨","看银行愿不愿放、企业愿不愿借"]],
+    terms:[["宽货币、紧信用","央行给了流动性，但银行不敢放、企业不愿借，钱停在体系里。"]] },
+
+  { t:"降准和降息的区别", who:"最容易混的一对",
+    what:[
+      "这两个词经常一起出现，但动的是完全不同的东西。",
+      "<b>降准是数量工具</b>：改的是「能放出多少钱」，动货币乘数。",
+      "<b>降息是价格工具</b>：改的是「钱的价格」，动的是利率。",
+      "降准影响的是<b>银行放贷的能力</b>；降息影响的是<b>借钱的意愿</b>。",
+      "一个管供给，一个管需求。所以真正要刺激经济时，两个往往一起用——只降准不降息，闸门开了但借钱还是贵；只降息不降准，借钱便宜了但银行没额度。" ],
+    led:[["降准","数量工具｜改货币乘数｜影响放贷能力"],
+         ["降息","价格工具｜改利率｜影响借钱意愿"],
+         ["配合","一个管供给，一个管需求"]],
+    terms:[["数量工具","调「多少」——降准改的是规模。"],
+           ["价格工具","调「多贵」——降息改的是利率。"]] },
+
+  { t:"它在六件工具里的独特位置", who:"定位",
+    what:[
+      "把六件放一起看，降准是唯一一件<b>不投放基础货币</b>的工具。",
+      "其余五件都会让央行资产负债表扩张（资产端、负债端同时增加）；只有降准，<b>资产负债表规模完全不动</b>，只是负债端内部结构调整。",
+      "所以判断降准的效果，不能看央行扩了多少表——它本来就不扩表。要看的是<b>超额准备金率</b>和<b>信贷投放</b>。",
+      "这也解释了为什么降准消息出来后，市场先看银行股、看债市，而不是先看基础货币数据。" ],
+    led:[["其余五件","投放基础货币，央行扩表"],
+         ["降准","<b>不投放，不扩表</b>，只改负债结构"],
+         ["看什么","超额准备金率、信贷投放"]],
+    terms:[["扩表","央行资产负债表变大。除降准外的五件工具都会扩表。"]] },
+
+  { t:"如果一直降准，会怎么样？能降到 0 吗？", who:"边界与极限",
+    what:[
+      "先给结论：<b>能降到 0，事实上好几个发达经济体已经是 0。</b>美国 2020 年 3 月把法定准备金率降到零，加拿大、澳大利亚、瑞典长期就是零。",
+      "但「能降到 0」和「降到 0 还有用」是两件事。<b>越往下走，降准的效果衰减得越快。</b>",
+      "中国现在加权平均 6% 出头，如果每次降 0.5 个点，看起来还有十几次。但这里有个陷阱：<b>6% 是加权平均，分档差别很大</b>——第三档的县域小行本来就低，它们比大行更早触底。",
+      "更重要的是，往下走会撞上四道硬约束——" ],
+    led:[
+      ["约束一 · 清算底座","即使法定准备金率是 0，银行也必须留一笔钱在央行做<b>清算</b>。大额支付、跨行清算都走准备金账户。准备金见底，白天出现时点缺口就可能清算失败。所以存在一个「事实下限」。"],
+      ["约束二 · 钱没去处","降准只是把法定转成超额。如果银行放不出去，它就把钱又存回央行、赚 0.35%。<b>降准变成空转</b>——结构变了，什么都没发生。中国商业银行超额备付金率常年在 1.5%–2% 的低位，说明银行本来就留着一层缓冲。"],
+      ["约束三 · 走廊失灵","超额准备金利率 0.35% 是利率走廊的下限。准备金太多，DR007 会贴着 0.35% 走，<b>央行就失去了用价格调控的能力</b>——利率已经到底。堆起来的流动性还会往债市、楼市里挤。"],
+      ["约束四 · 汇率与利差","降准 → 利率下行 → 中美利差收窄 → 资本外流和汇率压力。在汇率有管理浮动的情况下，这一条会给降准划出上限。"] ],
+    terms:[["零准备金率","法定准备金率为 0。美国 2020 年 3 月起、加拿大、澳大利亚等长期如此。"],
+           ["事实下限","理论上能到 0，但清算需要决定了实际不能无限接近 0。"]] },
+
+  { t:"降到底之后：不是没招，是换招", who:"如果真降到 0",
+    what:[
+      "<b>先说一个反直觉的事实：降准不一定等于放水。</b>",
+      "2018 年以来很多次降准，是<b>「降准置换 MLF」</b>——用降准释放的长期低成本资金，去替换掉银行欠央行的高成本 MLF。净效果是银行成本降了，但<b>基础货币总量没变多少</b>。",
+      "所以看到降准，要先问一句：<b>这次是净投放，还是置换？</b>",
+      "那降到底怎么办？<b>换工具。</b>日本、美国走到 0 之后，用的是量化宽松（直接买资产）、负利率（对准备金收费）、收益率曲线控制。所以「降准降到底」不等于「没招了」，而是「要换一套工具了」。",
+      "按中国的节奏判断：降准还会继续，但<b>幅度更小、节奏更慢</b>，同时更多依赖再贷款、PSL 这类结构性工具。方向是「低但非零的准备金率 ＋ 更强的利率走廊」，也就是往美联储那套框架靠。" ],
+    key:"一句话：<b>降准能降到 0，但它的边际效果会先于 0 失效。</b>真正的瓶颈不是「准备金率还能降多少」，而是「银行愿不愿放、企业愿不愿借」。所以降到底之后，问题就从「数量」变成了「价格」和「结构」——这也是央行越来越依赖利率工具和结构性工具的原因。",
+    terms:[["降准置换 MLF","用降准释放的长期资金替换到期的 MLF。银行成本下降，但基础货币总量变化不大。"],
+           ["量化宽松","央行直接买资产（国债、MBS）投放流动性。准备金率到 0 之后的下一件武器。"],
+           ["收益率曲线控制","央行直接盯住某个期限的国债收益率，日本央行在用。"]] },
+
+  { t:"降到 0 之后，还能直接提回来吗？", who:"降准与提准的不对称",
+    what:[
+      "<b>技术上当然能。</b>准备金率是央行自己定的行政参数，《中国人民银行法》没有规定上下限，随时可以调。中国历史上就双向用过：2003 到 2011 年从 6% 一路提到 21.5%，之后又一路降回来。",
+      "但「能提」和「提得动」是两件事。<b>降准是松手，提准是收紧</b>——松手不需要任何人配合，收紧需要所有人同时调整。这个不对称，决定了提准的实际难度远大于降准。",
+      "具体有四个卡点——" ],
+    led:[
+      ["卡点一 · 信号无穷大","从 0 提到 0.5，绝对幅度很小，但<b>相对幅度是无穷大</b>——从「没有要求」变成「有要求」。而且第一步就是最猛的信号冲击，没有任何渐进空间。"],
+      ["卡点二 · 瞬间抽水","降准是银行「多了钱」，提准是银行「钱突然要还」。从 0 提到 1%，200 万亿存款就是<b>2 万亿准备金的瞬间需求</b>。超额准备金薄的银行只能卖资产、抢存款。"],
+      ["卡点三 · 资产换不回来","降准那些年，银行拿准备金配了债、放了 3–5 年的贷。提准要求它们把资产换回准备金，可<b>长期贷款收不回来</b>，只能卖债——债市跌、账面亏损、资本充足率下降，形成负反馈。"],
+      ["卡点四 · 钱已经沉淀","降准释放的钱一旦贷出去，就变成别人的存款、再被贷出去，<b>沉淀在整个经济体的存款里</b>。提准只能从银行体系的准备金里抽，抽不够就逼着收缩信贷——而信贷收缩是痛苦、慢、带坏账的。"] ],
+    key:"所以现实里的答案是：<b>技术上能提，实际上几乎不会提。</b>2010–2011 年一年半内提准 12 次、大型银行从 15.5% 提到 21.5%，那是提准最猛的年代，之后十四年再没提过。真要收紧，央行会按这个顺序来：<b>逆回购不续作 → MLF 缩量 → 提高政策利率 → 宏观审慎 → 最后才是提准。</b>提准是最后手段，因为它全局、不可逆、信号最强。国际经验也一样——美国 2020 年降到 0 后保持至今，欧洲央行 1% 几十年没动：<b>不是不能提，是没必要提，因为有更精细的工具。</b>",
+    terms:[["不对称性","放松和收紧的难度不一样。降准不需要配合，提准需要所有人同时调整。"],
+           ["资本充足率","银行资本 ÷ 风险加权资产。资产价格跌了，这个比率会下降，银行就被迫收缩。"],
+           ["准备金粘性","释放出去的钱变成存款后会沉淀在经济体里，不是想收就能收回来的。"]] },
+
+  { t:"六件工具，一张表看清", who:"收尾",
+    what:[
+      "把六件并排放。你会发现降准和其余五件根本不在一个维度上——<b>它们都在「投放」，只有降准在「放大」。</b>" ],
+    led:[["隔夜 / 7 天逆回购","固定利率、数量招标｜≤7 天｜质押｜价格即政策利率｜投放"],
+         ["买断式逆回购","固定数量、利率招标｜3M / 6M｜买断过户｜市场化定价｜投放"],
+         ["MLF","固定数量、利率招标｜1 年｜质押｜已退出政策利率｜投放"],
+         ["PSL","央行定价｜3–5 年｜质押｜仅 3 家政策行｜投放（准财政）"],
+         ["再贷款","央行定价｜通常 1 年｜信用无押品｜先贷后借｜投放（调结构）"],
+         ["降准","改准备金率｜永久｜无押品｜<b>不投放，只放大乘数</b>"]],
+    key:"一句话：<b>降准不创造任何钱，它只是把银行锁在央行的钱解开一部分，让同一笔基础货币能支撑更多存款。</b>松的是闸门，不是水源。所以降准之后 M2 会不会涨，取决于银行愿不愿放贷、企业愿不愿借钱——它给的是许可，不是结果。",
+    terms:[] }
+];
+/* ============================ 通用分步播放器 ============================ */
+const PLAYERS = {
+  repo: { root:"repoPanel", title:"7 天逆回购：一笔钱走完一生", steps:REPO },
+  out:  { root:"outPanel",  title:"买断式逆回购：先买后卖的中期投放", steps:OUTRIGHT },
+  mlf:  { root:"mlfPanel",  title:"MLF：给银行的一年期中期钱", steps:MLF },
+  psl:  { root:"pslPanel",  title:"PSL：绕开商业银行的准财政资金", steps:PSL },
+  relend: { root:"rlPanel", title:"再贷款：先贷后借的定向报销", steps:RELEND },
+  rrr:  { root:"rrrPanel", title:"降准：松开闸门，不动水源", steps:RRRFLOW }
+};
+const FLOW_BTN = {
+  repo: ["repoBtn", "看这笔钱怎么走完 7 天 →"],
+  out:  ["outBtn",  "看买断式到底在干什么 →"],
+  mlf:  ["mlfBtn",  "看 MLF 到底在干什么 →"],
+  psl:  ["pslBtn",  "看 PSL 的钱去哪儿了 →"],
+  relend: ["rlBtn", "看再贷款怎么报销 →"],
+  rrr:  ["rrrBtn", "看降准到底改了什么 →"]
+};
+let playKey = null, playI = 0, playTimer = null;
+
+function repoLedger(rows){
+  if (!rows || !rows.length) return "";
+  return '<div class="rled">' + rows.map(function(r){
+    return '<div><i>' + r[0] + '</i><span>' + r[1] + '</span></div>';
+  }).join("") + '</div>';
+}
+function playRender(){
+  const P = PLAYERS[playKey], s = P.steps[playI];
+  const dots = P.steps.map(function(_, i){
+    return '<i class="' + (i < playI ? "done" : (i === playI ? "cur" : "")) + '"></i>';
+  }).join("");
+  panel.innerHTML =
+    '<div id="' + P.root + '">' +
+      '<button class="backbtn" id="backBtn">← 回到工具箱</button>' +
+      '<div class="pcard">' +
+        '<h3><span class="n" style="background:' + C.base + '">②</span>' + P.title + '</h3>' +
+        '<div class="dprog">' + dots + '<span>' + (playI + 1) + ' / ' + P.steps.length + '</span></div>' +
+        (s.who ? '<div class="dwho">' + s.who + '</div>' : '') +
+        '<div class="dsub">' + s.t + '</div>' +
+        s.what.map(function(x){ return '<p>' + x + '</p>'; }).join("") +
+        repoLedger(s.led) +
+        (s.key ? '<div class="keybox">' + s.key + '</div>' : '') +
+        ((s.terms && s.terms.length) ? '<div class="dsub">必须懂的词</div>' +
+          s.terms.map(function(x){ return '<div class="tm"><b>' + x[0] + '</b><p>' + x[1] + '</p></div>'; }).join("") : '') +
+        '<div class="dctl">' +
+          '<button class="btn wout" id="rPrev">← 上一步</button>' +
+          '<button class="btn" id="rAuto">' + (playTimer ? "⏸ 暂停" : "▶ 自动播放") + '</button>' +
+          '<button class="btn" id="rNext">下一步 →</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  const b = $("backBtn"); if (b) b.onclick = function(){ playStop(); showTools(); };
+  const pv = $("rPrev");
+  if (pv){ pv.onclick = function(){ if (playI > 0){ playI--; playRender(); } }; if (playI === 0) pv.setAttribute("disabled",""); }
+  const nx = $("rNext");
+  if (nx){ nx.onclick = function(){ if (playI < P.steps.length - 1){ playI++; playRender(); } }; if (playI === P.steps.length - 1) nx.setAttribute("disabled",""); }
+  const au = $("rAuto"); if (au) au.onclick = function(){ playAuto(); };
+  if (playTimer) schedulePlay();
+}
+function schedulePlay(){
+  if (playTimer) clearTimeout(playTimer);
+  playTimer = setTimeout(function(){
+    if (!panel.querySelector("#" + PLAYERS[playKey].root)){ playTimer = null; return; }
+    if (playI < PLAYERS[playKey].steps.length - 1){ playI++; playRender(); }
+    else { playStop(); playRender(); }
+  }, 6500);
+}
+function playAuto(){
+  if (playTimer){ playStop(); playRender(); }
+  else { playTimer = 1; playRender(); }
+}
+function playStop(){
+  if (playTimer) clearTimeout(playTimer);
+  playTimer = null;
+}
+function playOpen(key){ playKey = key; playI = 0; playStop(); playRender(); }
+function showRepo(){ playOpen("repo"); }
+function showOutright(){ playOpen("out"); }
+function showMLF(){ playOpen("mlf"); }
+
+/* ============================ 央行资产负债表 ============================ */
+const PBC_A = [
+  ["22.0","外汇","2014 年 5 月见顶 27.2 万亿、一度占资产 80% 以上；现在降到一半左右","49","var(--base)"],
+  ["15.0","对其他存款性公司债权","MLF、PSL、买断式逆回购、再贷款全部加总。2015 年后接棒的主力","33","var(--create)"],
+  ["4.5","其他资产","固定资产、应收款等","10","var(--mut2)"],
+  ["2.0","黄金及其他国外资产","黄金储备按市价重估","4","var(--fiscal)"],
+  ["1.5","对政府债权","主要是 2007 年发行的 1.55 万亿特别国债（用于成立中投）","3","var(--bond)"],
+  ["0.4","对其他金融性公司债权","对 AMC 等机构的再贷款","1","var(--cross)"]
+];
+const PBC_L = [
+  ["22.0","其他存款性公司存款（准备金）","银行的法定＋超额准备金，存在央行账上，<b>不能直接花</b>","49","var(--create)"],
+  ["12.8","货币发行（现金 M0）","流通中的现金，在居民和企业口袋里","28","var(--base)"],
+  ["4.5","政府存款","国库的钱，<b>不在储备货币里</b>","10","var(--fiscal)"],
+  ["2.6","其他负债","","6","var(--mut2)"],
+  ["2.3","非金融机构存款（支付备付金）","第三方支付机构客户备付金，2017 年起集中存管","5","var(--shadow)"],
+  ["0.5","不计入储备货币的金融性公司存款","","1","var(--cross)"],
+  ["0.3","发行债券 ＋ 国外负债","央票基本退出，只剩零头","1","var(--cross)"],
+  ["0.02","自有资金","<b>219.75 亿元</b>。央行不靠资本金运作，靠国家信用","0","var(--warn)"]
+];
+function bsRows(list){
+  return list.map(function(r){
+    return '<div class="cs">' +
+      '<div class="cs-y">' + r[0] + '<span style="opacity:.55"> 万亿</span></div>' +
+      '<div class="cs-b"><div class="cs-t">' + r[1] + '</div>' +
+        (r[2] ? '<div class="cs-d">' + r[2] + '</div>' : '') +
+        '<div class="bsbar"><i style="width:' + Math.max(r[3], 0.6) + '%;background:' + r[4] + '"></i></div>' +
+      '</div>' +
+      '<div class="cs-a">' + r[3] + '%</div>' +
+    '</div>';
+  }).join("");
+}
+function showPBC(){
+  clearFocus();
+  panel.innerHTML =
+    '<button class="backbtn" id="backBtn">← 回到导览</button>' +
+    '<div class="pcard">' +
+      '<h3>中国人民银行 · 资产负债表</h3>' +
+      '<p>数量级示意，单位万亿元，四舍五入；总资产约 <b>45 万亿</b>，和总负债相等。</p>' +
+      '<div class="keybox">央行没有「钱」，它只有<b>负债</b>。它扩张资产负债表就是在印钱——资产端多记一笔，负债端就必须多记一笔，两边永远相等。</div>' +
+      '<div class="deep-p">恒等式：<b>资产 ＝ 负债 ＋ 自有资金</b>。自有资金只占 0.05%，所以实际上就是<b>资产 ＝ 负债</b>。这也意味着央行永远不会「资不抵债」——它的负债是它自己印的。</div>' +
+    '</div>' +
+    '<div class="pcard">' +
+      '<h3>资产端：钱从哪儿出去</h3>' +
+      bsRows(PBC_A) +
+      '<div class="bsfoot">合计约 45 万亿。注意这里<b>没有</b>「对企业的贷款」——法律不允许央行直接给企业放款，它只能对金融机构放款、或在二级市场买卖政府债券。这就是「最后贷款人」和「第一贷款人」的区别。</div>' +
+    '</div>' +
+    '<div class="pcard">' +
+      '<h3>负债端：钱以什么形式存在</h3>' +
+      bsRows(PBC_L) +
+      '<div class="bsfoot">储备货币 ＝ 准备金 22.0 ＋ 现金 12.8 ＋ 备付金 2.3 ＝ <b>37.1 万亿</b>，这就是<b>基础货币</b>。<br>政府存款 4.5 万亿<b>不在</b>储备货币里——所以缴税会让基础货币减少，财政支出会让它增加。</div>' +
+    '</div>' +
+    '<div class="pcard">' +
+      '<h3>三个必须读懂的地方</h3>' +
+      '<div class="deep-p"><b style="color:#e8eefc">① 资产端决定钱怎么出去。</b>2002–2014 年靠<b>买外汇</b>出去——企业把美元卖给央行，央行被动投放人民币，外汇一度占到资产的 80%。2015 年以后靠<b>借给银行</b>出去——MLF、PSL、逆回购，给多少、给多长，央行自己说了算。这就是「外汇占款退潮，主动投放接棒」。</div>' +
+      '<div class="deep-p"><b style="color:#e8eefc">② 负债端决定钱以什么形式存在。</b>同样是基础货币：现金（12.8 万亿）在居民和企业口袋里，谁都能花；准备金（22 万亿）躺在央行账上，银行<b>不能花</b>，只能用于清算和应付提现；备付金（2.3 万亿）是支付机构的钱，2017 年起集中存管。三者「能不能花」差得远。</div>' +
+      '<div class="deep-p"><b style="color:#e8eefc">③ 自有资金只有 219.75 亿元。</b>占资产的 0.05%。这个数字十年没怎么变过，是理解央行最关键的一把钥匙：它不靠资本金运作，靠的是国家信用和强制力。所以「央行会不会破产」这个问题本身就不成立。</div>' +
+    '</div>' +
+    '<div class="pcard">' +
+      '<h3>三个时点：同一张表，两种玩法</h3>' +
+      '<table class="bstab">' +
+        '<tr><th></th><th>2002</th><th>2014 峰值</th><th>现在</th></tr>' +
+        '<tr><td>总资产</td><td>5 万亿</td><td>34 万亿</td><td>45 万亿</td></tr>' +
+        '<tr><td>外汇占资产比</td><td>43%</td><td>80%</td><td>49%</td></tr>' +
+        '<tr><td>对银行债权</td><td>很小</td><td>不到 1 万亿</td><td>15 万亿</td></tr>' +
+      '</table>' +
+      '<div class="bsfoot">看第三行就懂了：<b>同样是「央行放水」，2002 年是别人把水送进来的（被动），现在是央行自己拧龙头（主动）。</b>这个转变发生在 2014–2015 年，也是整张图上「外汇占款 → 对其他存款性公司债权」这根主线换轨的时刻。</div>' +
+    '</div>';
+  const b = $("backBtn"); if (b) b.onclick = () => { panelHome(); };
+}
+
+function showHistory(){
+  pinned = "hist";
+  clearFocus();
+  const eras = ERAS.map((e, i) =>
+    '<div class="era">' +
+      '<div class="era-n">' + (i + 1) + '</div>' +
+      '<div class="era-b">' +
+        '<div class="era-y">' + e.y + '</div>' +
+        '<div class="era-t">' + e.n + '</div>' +
+        '<div class="era-m">' + e.m + '</div>' +
+        '<div class="era-k">' + e.k.map(x => '<span>' + x + '</span>').join("") + '</div>' +
+        (e.w ? '<div class="era-w">换挡原因：' + e.w + '</div>' : '') +
+      '</div>' +
+    '</div>'
+  ).join("");
+  const bars = SURPLUS.map(p => {
+    const h = (p[1] / 5939 * 86).toFixed(1);
+    return '<div class="bc-r"><b class="bc-b" style="height:' + h + '%"></b><em>' + String(p[0]).slice(2) + '</em></div>';
+  }).join("");
+  panel.innerHTML =
+    '<button class="backbtn" id="backBtn">← 回到导读</button>' +
+    '<div class="pcard"><h3>基础货币的五个时代</h3>' +
+      '<p>央行投放基础货币的方式，三十多年里换了四次主轴：<b style="color:#e8eefc">再贷款 → 外汇占款 → 主动工具 → 结构性工具</b>。</p>' +
+      '<p>每一次换挡都不是设计出来的，是被上一套机制的副作用逼出来的：外储不够了换一次，被动投放太多通胀了换一次，外汇流出了再换一次。</p></div>' +
+    '<div class="pcard"><h3>一条主轴，四次换挡</h3>' + eras + '</div>' +
+    '<div class="pcard"><h3>转折点：2014 年 5 月</h3>' +
+      '<p>央行口径外汇占款站上 <b style="color:#e8eefc">27.3 万亿元</b>，但当月新增只有 <b style="color:#e8eefc">3.61 亿元</b>——环比骤降 99.57%。</p>' +
+      '<p>同月贸易顺差约 360 亿美元。<b style="color:#e8eefc">顺差还在，外汇占款却几乎零增长</b>——这个背离本身就说明：钱在往外走，而不只是没进来。</p>' +
+      '<p>之后：2015 年 −2.21 万亿，2016 年 −2.91 万亿，2017 年 2 月降到 21.7 万亿，累计 −5.6 万亿。</p>' +
+      '<p>接棒的是主动工具：2016 年末对其他存款性公司债权同比暴增 218%，其中 MLF 余额一年增长 4.19 倍。</p></div>' +
+    '<div class="pcard"><h3>顺差还在，管子却堵了</h3>' +
+      '<div class="barchart">' + bars + '</div>' +
+      '<p style="font-size:10.5px;color:var(--mut2)">2002–2015 年贸易顺差（亿美元）。2015 年 5939 亿是本段峰值，而同年外汇占款却在大幅下降。</p>' +
+      '<p>同期人民币平均汇率：8.28（2002–2004）→ 6.95（2008）→ 6.14（2014）→ 6.23（2015）。顺差与升值并行，但顺差不再自动变成外汇占款——因为企业和居民开始自己持汇，不再全部结给央行。</p></div>' +
+    '<div class="pcard"><h3>为什么没重演 1997 年的泰国</h3>' +
+      '<table class="dtab"><tr><th></th><th>泰国 1996</th><th>中国 2015</th></tr>' +
+      '<tr><td><b>资本项目</b></td><td>基本放开</td><td>关键部分未可兑换，留着一道闸门</td></tr>' +
+      '<tr><td><b>汇率</b></td><td>钉住美元</td><td>有管理浮动，可贬值</td></tr>' +
+      '<tr><td><b>短期外债<br>／外储</b></td><td>超过 100%</td><td>28%</td></tr>' +
+      '<tr><td><b>工具</b></td><td>几乎只有加息</td><td>宏观审慎＋真实性审核＋20% 外汇风险准备金</td></tr>' +
+      '<tr><td><b>结果</b></td><td>外储耗尽，放弃钉住，危机爆发</td><td>外储 3.3 万亿，冲击被吸收</td></tr></table>' +
+      '<p>泰国是门全开、又没外汇缓冲，被短期资本集中冲垮；中国是门没全开、手里有外汇，面对的是一场流速可控的退潮。</p></div>';
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+}
+function showTools(){
+  pinned = "tools";
+  clearFocus();
+  const ladder = TOOLS.map(t =>
+    '<div class="lad-row"><span class="lad-k">' + t.name + '</span><div class="track"><i style="left:' +
+    t.bar[0] + '%;width:' + (t.bar[1] - t.bar[0]) + '%;background:' + C[t.kind] + '"></i></div></div>'
+  ).join("");
+  const list = TOOLS.map(t =>
+    '<div class="tool" style="border-color:' + C[t.kind] + '">' +
+      '<div class="tool-h"><b>' + t.name + '</b><span>' + t.tag + '</span></div>' +
+      '<div class="tool-dl">' +
+        '<div><i>期限</i><span>' + t.tenor + '</span></div>' +
+        '<div><i>对象</i><span>' + t.obj + '</span></div>' +
+        '<div><i>方式</i><span>' + t.way + '</span></div>' +
+        '<div><i>定价</i><span>' + t.price + '</span></div>' +
+      '</div>' +
+      '<div class="tool-r">' + t.role + '</div>' +
+      (t.flow && FLOW_BTN[t.flow] ? '<button class="btn" id="' + FLOW_BTN[t.flow][0] + '" style="margin-top:9px;width:100%">' + FLOW_BTN[t.flow][1] + '</button>' : '') +
+    '</div>'
+  ).join("");
+  const chain = RATE_CHAIN.map(c =>
+    (c.ar ? '<div class="ch-ar">' + c.ar + '</div>' : '') +
+    '<div class="ch"><div class="ch-h"><b>' + c.k + '</b><span>' + c.n + '</span></div>' +
+    '<div class="ch-d">' + c.d + '</div></div>'
+  ).join("");
+  const cpHTML = COUNTERPARTIES.map(c =>
+    '<div class="cp"><div class="cp-h"><b>' + c.key + '</b><span>' + c.sub + '</span></div>' +
+    '<div class="cp-d">' + c.d + '</div>' +
+    c.rows.map(r => '<div class="cp-r"><i>' + r[0] + '</i><span>' + r[1] + '</span></div>').join("") +
+    (c.note ? '<div class="cp-note">' + c.note + '</div>' : '') +
+    '</div>'
+  ).join("");
+  const auHTML = AUCTION.map(a => '<div class="au"><b>' + a.k + '</b><p>' + a.d + '</p></div>').join("");
+  panel.innerHTML =
+    '<button class="backbtn" id="backBtn">← 回到导读</button>' +
+    '<div class="pcard"><h3><span class="n" style="background:' + C.base + '">②</span>央行的投放工具箱</h3>' +
+      '<p>「央行投放基础货币」是一句被压缩得太狠的话。真实操作是六件工具，它们在<b style="color:#e8eefc">期限、对象、方式、定价</b>四个维度上各不相同——而这些差别，决定了同一笔钱会不会变成实体的支出。</p></div>' +
+    '<div class="pcard"><h3>期限谱</h3><div class="lad">' + ladder + '</div>' +
+      '<div class="lad-ax"><span>隔夜</span><span>7天</span><span>3月</span><span>1年</span><span>3年</span><span>5年+</span></div>' + '<p style="font-size:11px;color:var(--mut2);margin-top:7px">bp＝基点，1 个基点＝0.01%。</p></div>' +
+    '<div class="pcard"><h3>谁能跟央行做交易</h3>' +
+      '<p style="color:var(--mut);font-size:12px">三个圈层，越往下越窄。看一件工具的对象，就知道这条水管接在谁身上。</p>' +
+      cpHTML + '</div>' +
+    '<div class="pcard"><h3>招标是怎么回事</h3>' +
+      auHTML +
+      '<p style="color:var(--mut2);font-size:11.5px;line-height:1.75;margin-top:10px">所以「价格由招标决定，不是政策利率」＝ 这一次借钱的利率，是那几十家机构当场报出来的，每次都可能不一样。央行没有把它当成政策基准来宣布，它也就不该被当成政策利率来读。</p></div>' +
+    '<div class="pcard"><h3>逐个体检</h3>' + list + '</div>' +
+    '<div class="pcard"><h3>利率是怎么传到你的</h3>' + '<p style="color:var(--mut);font-size:12px">政策利率不是直接改你的月供，它要沿着下面这条链一站一站往下走。每一站都有自己的名字，也都加了一层价。</p>' + '<div class="chain">' + chain + '</div>' + '<p style="color:var(--mut2);font-size:11.5px;line-height:1.75;margin-top:10px">每一跳都在衰减：政策利率降 10bp，DR007 基本跟着走，LPR 常常只降 5bp，实际贷款利率可能只降 3bp。链条越长，央行的手伸得越短——这也是「宽货币、紧信用」这个词的由来。</p></div>' +
+    '<div class="pcard"><h3>三个岔路口</h3>' +
+      '<p><b style="color:#e8eefc">① 价格 vs 数量。</b>过去只有 7 天逆回购是价格型（它就是政策利率）；买断式、MLF、PSL、再贷款都是数量型。2026.11 起这一角色转给了隔夜逆回购，7 天逆回购自己也改成了利率招标。</p>' +
+      '<p><b style="color:#e8eefc">② 质押 vs 买断。</b>质押是券押在央行、所有权还在银行但被冻结；买断是所有权转移，银行真的把券卖掉了——所以买断式能盘活资产、能跨年。</p>' +
+      '<p><b style="color:#e8eefc">③ 主动 vs 看申请。</b>逆回购和买断式是央行每天主动出价；PSL 与再贷款是银行/政策行申请、央行批额度，<b style="color:#e8eefc">额度给了也不一定用出去</b>。</p></div>' +
+    '<div class="pcard" style="border-color:rgba(77,141,255,.3);background:rgba(77,141,255,.06)">' +
+      '<h3>为什么这六个的差别重要</h3>' +
+      '<p>同样是「投放 1000 亿」：用 7 天逆回购，银行知道下周就到期，不敢拿去放三年期贷款，钱大概率停在银行间；用 PSL，是 5 年期、直接进政策性银行、直接进工地。</p>' +
+      '<p><b style="color:#e8eefc">工具的期限和对象，决定了这笔钱的「含水量」。</b>这也是为什么央行一边总量宽松、一边反复强调「结构性工具」——它想绕开银行的谨慎，把钱直接怼到某个领域。</p></div>';
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+  Object.keys(FLOW_BTN).forEach(function(k){
+    const el = $(FLOW_BTN[k][0]); if (el) el.onclick = function(){ playOpen(k); };
+  });
+}
+function buildNodes(){
+  const g = el("g", {id:"nodes"});
+  NODES.forEach(n => {
+    const g = el("g", {class:"node", "data-id":n.id, transform:`translate(${n.x - n.w/2},${n.y - n.h/2})`});
+    g.appendChild(el("rect", {class:"card", width:n.w, height:n.h, rx:18}));
+    g.appendChild(el("rect", {
+      class:"bar", x:22, y:20, width:38, height:4, rx:2, fill:C[n.tone]
+    }));
+    const ty = n.h >= 120 ? 54 : 48;
+    g.appendChild(txt(22, ty, n.title, "n-title"));
+    g.appendChild(txt(22, ty + 24, n.sub, "n-sub"));
+    g.appendChild(txt(22, ty + 43, n.sub2, "n-sub2"));
+
+    // 左侧色条（发光）
+    g.appendChild(el("rect", {
+      x:-1, y:20, width:3, height:n.h - 40, rx:2, fill:C[n.tone], opacity:".55"
+    }));
+    g.addEventListener("mouseenter", () => { if (!pinned) setFocus(null, n.id); });
+    g.addEventListener("mouseleave", () => { if (!pinned) setFocus(null, null); });
+    g.addEventListener("click", ev => { ev.stopPropagation(); showNode(n); });
+    gNodes.appendChild(g);
+  });
+  svg.appendChild(gNodes);
+}
+let gNodes;
+
+function buildBadges(){
+  const g = el("g", {id:"badges"});
+  EDGES.forEach(e => {
+    const bg = el("g", {class:"badge", "data-id":e.id, "data-kind":e.kind});
+    bg.appendChild(el("circle", {cx:e.badge[0], cy:e.badge[1], r:11, fill:C[e.kind], opacity:".92"}));
+    bg.appendChild(el("circle", {
+      cx:e.badge[0], cy:e.badge[1], r:11, fill:"none",
+      stroke:"#0a1120", "stroke-width":"2"
+    }));
+    const t = el("text", {x:e.badge[0], y:e.badge[1]});
+    t.textContent = e.num;
+    bg.appendChild(t);
+    g.appendChild(bg);
+  });
+  svg.appendChild(g);
+}
+
+function hexToRgb(h){
+  const n = parseInt(h.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/* ============================ 交互：聚焦 ============================ */
+function setFocus(edgeId, nodeId){
+  focusId = edgeId || nodeId || null;
+  const keep = new Set();
+  if (edgeId) keep.add(edgeId);
+  else if (nodeId) (NODE_EDGES[nodeId] || []).forEach(id => keep.add(id));
+
+  svg.querySelectorAll("[data-id]").forEach(n => {
+    const isNode = n.classList.contains("node");
+    if (!focusId){
+      n.classList.remove("dimmed", "dim", "on");
+      return;
+    }
+    const id = n.getAttribute("data-id");
+    if (isNode){
+      n.classList.remove("dimmed");
+      n.classList.toggle("dim", !!edgeId);
+    } else {
+      n.classList.toggle("dimmed", !keep.has(id));
+      n.classList.toggle("on", !!edgeId && keep.has(id));
+    }
+  });
+  svg.querySelectorAll(".node").forEach(n => {
+    n.classList.toggle("focus", !!nodeId && n.getAttribute("data-id") === nodeId);
+  });
+}
+
+function clearFocus(){
+  pinned = null;
+  focusId = null;
+  svg.querySelectorAll("[data-id]").forEach(n => n.classList.remove("dimmed", "dim", "on"));
+  svg.querySelectorAll(".node").forEach(n => n.classList.remove("focus"));
+}
+
+/* ============================ 侧栏 ============================ */
+function panelHome(){
+  playStop();
+  clearFocus();
+  const legend =
+    '<div class="pcard"><h3>怎么读这张图</h3>' +
+      '<p><b style="color:#e8eefc">颜色＝机制</b>，<b style="color:#e8eefc">圆圈数字＝记账动作的序号</b>。悬停任一箭头会点亮它、压暗其余；点一下钉住，右侧显示这笔操作的完整分录。</p>' +
+      '<p>箭头多的图看似糊成一团，实际上任何时刻你只需要看一根：先点数字，再读分录，最后看它对 <span class="kbd">M2</span> 和 <span class="kbd">基础货币</span> 各做了什么。</p>' +
+      '<p>左上那块虚线卡片是 <b style="color:#e8eefc">② 的展开</b>：央行投放基础货币的六件工具，每件都标了期限、对象、方式和定价。</p>' +
+    '</div>' +
+    '<div class="pcard"><h3>六条通道</h3><div class="legend">' +
+      '<div class="lg"><i style="border-color:' + C.base + '"></i>基础货币：央行 ↔ 银行</div>' +
+      '<div class="lg"><i style="border-color:' + C.create + '"></i>货币创造：银行 ↔ 企业 / 居民</div>' +
+      '<div class="lg"><i style="border-color:' + C.fiscal + '"></i>财政：抽水与放水</div>' +
+      '<div class="lg"><i style="border-color:' + C.bond + '"></i>债市：融资 / 抵押品 / 定价</div>' +
+      '<div class="lg"><i style="border-color:' + C.shadow + '"></i>非银与影子银行</div>' +
+      '<div class="lg"><i style="border-color:' + C.cross + '"></i>跨境与外汇占款</div>' +
+      '<div class="lg dash"><i style="border-color:' + C.cross + '"></i>虚线＝回笼 / 账户 / 反向流</div>' +
+    '</div></div>' +
+    '<div class="pcard"><h3>三句话</h3>' +
+      '<p>① 货币是贷款造出来的，还本时被消灭——存量是记账的结果，不是印钞的结果。</p>' +
+      '<p>② 发债抽水、支出放水。财政是央行之外最大的水位调节器。</p>' +
+      '<p>③ M2 高而 CPI 低，问题不在创造太多，在周转太慢：钱进了资产、进了利息、进了预防性储蓄、进了国库。</p>' +
+    '</div>';
+  panel.innerHTML = courseCard() + legend;
+  bindCourse();
+}
+
+function impactHTML(list){
+  return `<div class="impacts">${list.map(([k,v,s]) =>
+    `<span class="imp ${s}">${k} ${v}</span>`).join("")}</div>`;
+}
+function taccHTML(rows){
+  return `<table class="tacc">
+    <tr><th>主体</th><th>资产</th><th>负债</th></tr>
+    ${rows.map(r => `<tr><td>${r.who}</td><td>${colorize(r.l)}</td><td>${colorize(r.r)}</td></tr>`).join("")}
+  </table>`;
+}
+function colorize(s){
+  if (!s) return "—";
+  return s.replace(/(＋\s*\d+|＋)/g, '<span class="pos">$1</span>')
+          .replace(/(−\s*\d+|−)/g, '<span class="neg">$1</span>');
+}
+
+function showEdge(e){
+  pinned = e.id;
+  setFocus(e.id, null);
+  const labels = e.labels.map(l => l.t).join(" · ");
+  panel.innerHTML = `
+    <button class="backbtn" id="backBtn">← 回到导读</button>
+    <div class="pcard">
+      <h3><span class="n" style="background:${C[e.kind]}">${e.num}</span>${e.title}</h3>
+      ${(e.flow || []).map(f => `<div class="flowline" style="color:${C[e.kind]}">${f}</div>`).join("")}
+      ${taccHTML(e.tacc)}
+      ${impactHTML(e.impact)}
+      <div class="one">${e.one}</div>
+      ${e.id === "e2" ? `<button class="btn" id="toolBtn" style="margin-top:12px;width:100%">展开六个工具 →</button>` : ""}
+      ${e.id === "e1" ? `<button class="btn" id="histBtn" style="margin-top:12px;width:100%">看基础货币的五个时代 →</button>` : ""}
+    </div>${(e.deeps || (e.deep ? [{h:e.deepH, b:e.deep}] : [])).map(d => `<div class="pcard"><h3>${d.h || "这条管子是怎么接上的"}</h3>${d.b.map(p => `<div class="deep-p">${p}</div>`).join("")}</div>`).join("")}`;
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+  const tb = $("toolBtn"); if (tb) tb.onclick = () => showTools();
+  const hb = $("histBtn"); if (hb) hb.onclick = () => showHistory();
+}
+
+function showNode(n){
+  pinned = n.id;
+  setFocus(null, n.id);
+  panel.innerHTML = `
+    <button class="backbtn" id="backBtn">← 回到导读</button>
+    <div class="pcard">
+      <h3><span class="n" style="background:${C[n.tone]}">·</span>${n.title}</h3>
+      <p style="color:${C[n.tone]};font-size:12.5px;margin-bottom:10px">${n.sub} · ${n.sub2}</p>
+      ${n.role.map(r => `<p>${r}</p>`).join("")}
+      ${n.id === "pbc" ? `<button class="btn" id="pbcBtn" style="margin-top:12px;width:100%">看央行的资产负债表 →</button>
+        <button class="btn wout" id="histBtn2" style="margin-top:8px;width:100%">看基础货币的五个时代 →</button>` : ""}
+    </div>
+    ${n.deep ? n.deep.map(d => `<div class="pcard"><h3>${d.h}</h3>${d.b.map(x => `<div class="deep-p">${x}</div>`).join("")}</div>`).join("") : ""}
+    <div class="pcard">
+      <h3>连到它的箭头</h3>
+      ${EDGES.filter(e => NODE_EDGES[n.id] && NODE_EDGES[n.id].includes(e.id)).map(e =>
+        `<div class="flowline" style="color:${C[e.kind]};cursor:pointer" data-goto="${e.id}">
+           <b style="color:#e8eefc">${e.num}</b>　${e.title}</div>`).join("")}
+    </div>`;
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+  const h2 = $("histBtn2"); if (h2) h2.onclick = () => showHistory();
+  const pb = $("pbcBtn"); if (pb) pb.onclick = () => showPBC();
+  panel.querySelectorAll("[data-goto]").forEach(x => x.onclick = () => showEdge(EDGES.find(e => e.id === x.dataset.goto)));
+}
+
+/* 节点与箭头的映射 */
+const NODE_EDGES = {
+  pbc:["e1","e2","e3","e4"],
+  bank:["e2","e3","e5","e6","e7","e11","e12","e14","e17"],
+  mof:["e4","e8","e9","e10"],
+  mkt:["e10","e11","e12","e13"],
+  nbfi:["e13","e14","e15","e16"],
+  hh:["e5","e16","e18","e19","e20"],
+  firm:["e6","e7","e8","e9","e15","e17","e18","e19"],
+  off:["e1","e17"]
+};
+const NODE_LINKS = NODE_EDGES;
+
+/* ============================ 底部模拟器 ============================ */
+const BASE = {M2:300000, B:38000};
+let acc = {M2:0, B:0, R:0, G:0, L:0, S:0};
+const META = [
+  {k:"M2", label:"Δ M2", unit:"亿"},
+  {k:"B",  label:"Δ 基础货币", unit:"亿"},
+  {k:"R",  label:"Δ 准备金", unit:"亿"},
+  {k:"G",  label:"Δ 政府存款", unit:"亿"},
+  {k:"L",  label:"Δ 银行贷款", unit:"亿"},
+  {k:"S",  label:"Δ 银行持债", unit:"亿"}
+];
+
+const OPS = [
+  { id:"o1", label:"逆回购 +1000", tone:"up",   edge:"e2", d:{B:1000, R:1000},
+    note:"投放准备金。钱停在银行间市场，M2 还不动。" },
+  { id:"o2", label:"到期回笼 −1000", tone:"down", edge:"e3", d:{B:-1000, R:-1000},
+    note:"抽回准备金。可贷空间收窄，但 M2 还没变。" },
+  { id:"o3", label:"降准 0.5pct", tone:"flat", edge:"e2", d:{},
+    note:"基础货币不变、M2 不变：法定准备金转成超额准备金，动的是乘数分母，不是基数。" },
+  { id:"o4", label:"放贷 +1000", tone:"up",   edge:"e5", d:{M2:1000, L:1000},
+    note:"贷款创造存款。M2 上升，基础货币不动。" },
+  { id:"o5", label:"还本 −1000", tone:"down", edge:"e6", d:{M2:-1000, L:-1000},
+    note:"贷款与存款同时注销 —— 货币被消灭。" },
+  { id:"o6", label:"收税 +1000", tone:"down", edge:"e8", d:{M2:-1000, B:-1000, R:-1000, G:1000},
+    note:"M2 与基础货币同时下降。真正的抽水。" },
+  { id:"o7", label:"财政支出 +1000", tone:"up", edge:"e9", d:{M2:1000, B:1000, R:1000, G:-1000},
+    note:"政府存款变企业存款，准备金回流。真正的放水。" },
+  { id:"o8", label:"银行买国债 +1000", tone:"flat", edge:"e11", d:{B:-1000, R:-1000, G:1000, S:1000},
+    note:"M2 不变，准备金被抽进国库。发债本身是紧缩的。" },
+  { id:"o9", label:"非银买国债 +1000", tone:"down", edge:"e13", d:{M2:-1000, B:-1000, R:-1000, G:1000},
+    note:"用的是存量存款，M2 直接少一块。" },
+  { id:"o10", label:"化债置换 1000", tone:"flat", edge:"e11", d:{L:-1000, S:1000},
+    note:"三段记账：政府发置换债（抽准备金）→ 拨给城投（放回）→ 城投还贷（注销贷款和存款）。净结果 M2 不变、基础货币不变，只有银行资产从贷款换成债券。真正的收缩不在存量，而在「不能再新增隐性债务」这条流量约束上。" },
+  { id:"o11", label:"影子银行放贷 +1000", tone:"up", edge:"e15", d:{M2:1000},
+    note:"M2 上升，但不占银行表内贷款额度、不缴准备金。绕开了闸门。" },
+  { id:"o12", label:"外汇占款 +1000", tone:"up", edge:"e1", d:{M2:1000, B:1000, R:1000},
+    note:"M2 与基础货币同时上升 —— 2005–2014 年的主旋律。" },
+  { id:"o13", label:"存款搬家 1000", tone:"flat", edge:"e16", d:{},
+    note:"M2 总量不变（非银存款也在 M2 里），变的是结构：居民存款 → 同业存款，银行负债更不稳。" }
+];
+
+function buildOps(){
+  const box = $("ops");
+  box.innerHTML = "";
+  OPS.forEach(o => {
+    const b = document.createElement("button");
+    b.className = "op";
+    b.dataset.tone = o.tone;
+    b.dataset.id = o.id;
+    b.textContent = o.label;
+    b.onclick = () => applyOp(o);
+    box.appendChild(b);
+  });
+}
+
+function buildMetrics(){
+  const box = $("metrics");
+  box.innerHTML = META.map(m =>
+    `<div class="m"><div class="k">${m.label}</div><div class="v zero" id="mv-${m.k}">0</div></div>`
+  ).join("") + `<div class="m"><div class="k">货币乘数 M2/B</div><div class="v" id="mv-MUL">7.89</div></div>`;
+}
+
+function fmt(v){
+  if (v === 0) return "0";
+  const s = Math.abs(v).toLocaleString("en-US");
+  return (v > 0 ? "+" : "−") + s;
+}
+function refreshMetrics(){
+  META.forEach(m => {
+    const n = $("mv-" + m.k);
+    const v = acc[m.k];
+    n.textContent = fmt(v);
+    n.className = "v " + (v > 0 ? "up" : v < 0 ? "down" : "zero");
+  });
+  const m2 = BASE.M2 + acc.M2, b = BASE.B + acc.B;
+  const mul = b > 0 ? (m2 / b) : 0;
+  const el2 = $("mv-MUL");
+  el2.textContent = mul.toFixed(2);
+  el2.className = "v " + (mul > 7.895 ? "up" : mul < 7.885 ? "down" : "");
+}
+
+function flashEdge(id){
+  const g = svg.querySelector(`.edge[data-id="${id}"]`);
+  if (!g) return;
+  g.classList.add("on");
+  setTimeout(() => g.classList.remove("on"), 1600);
+}
+
+function applyOp(o){
+  Object.keys(acc).forEach(k => { acc[k] += (o.d[k] || 0); });
+  refreshMetrics();
+  flashEdge(o.edge);
+  const e = EDGES.find(x => x.id === o.edge) || EDGES[0];
+  panel.innerHTML = `
+    <button class="backbtn" id="backBtn">← 回到导读</button>
+    <div class="pcard">
+      <h3><span class="n" style="background:${C[e.kind]}">${o.tone === "down" ? "−" : o.tone === "up" ? "＋" : "·"}</span>${o.label}</h3>
+      <div class="flowline" style="color:${C[e.kind]}">${e.title}</div>
+      <div class="impacts">
+        ${Object.keys(o.d).map(k => {
+          const v = o.d[k];
+          const label = {M2:"M2",B:"基础货币",R:"准备金",G:"政府存款",L:"银行贷款",S:"银行持债"}[k];
+          return `<span class="imp ${v>0?"up":"down"}">${label} ${fmt(v)}</span>`;
+        }).join("") || `<span class="imp flat">总量指标不变</span>`}
+      </div>
+      <div class="one">${o.note}</div>
+    </div>`;
+  const b = $("backBtn"); if (b) b.onclick = () => { clearFocus(); panelHome(); };
+  $("lastop").innerHTML = `最近一步：<b>${o.label}</b> · M2 ${fmt(o.d.M2 || 0)} · 基础货币 ${fmt(o.d.B || 0)}`;
+}
+
+/* ============================ 房贷演示 ============================ */
+const DEMO = [
+  { t:"央行放水：钱先进银行间", who:"央行 → A 银行", edge:"e2",
+    what:["央行做一笔 1 亿元的 7 天逆回购，把钱划给 A 银行。",
+          "看它做了什么：资产端多了一笔「对 A 银行的债权」，负债端多了一笔「准备金」。这笔钱不是印出来发给企业的——A 银行拿到的是<b>准备金</b>，只能用于清算和支撑放贷，不能直接拿去付工程款。",
+          "所以央行放水，放到的是<b>银行间市场</b>，不是工地。水会不会流到工地，取决于下一步银行肯不肯放贷。"],
+    tacc:[{who:"央行",l:"资产 对银行债权 ＋1 亿",r:"负债 准备金 ＋1 亿"},
+          {who:"A 银行",l:"资产 准备金 ＋1 亿",r:"负债 对央行负债 ＋1 亿"}],
+    terms:[["基础货币","准备金加上流通中的现金。它是整个货币体系的「底料」，M2 是它被反复放贷后膨胀出来的结果。"],
+           ["逆回购","央行把钱借给银行、押住债券，到期银行还钱赎券。期限通常 7 天，每天都可以操作。"]],
+    imp:[["基础货币","+1 亿","up"],["M2","不变","flat"]],
+    hint:"看左侧：第 ② 根箭头被点亮，其余压暗。" },
+
+  { t:"放贷之前：银行受什么约束", who:"A 银行", node:"bank",
+    what:["甲看中一套 <b>500 万</b>的房子，首付三成 <b>150 万</b>，需要贷款 <b>350 万</b>。银行愿意放，但不能随便放。",
+          "第一道是<b>资本</b>：个人住房抵押贷款的风险权重是 50%，350 万要占 175 万风险资产，按 8% 资本充足率算，得有约 <b>14 万</b>自有资本垫在下面。",
+          "第二道是<b>准备金</b>：这笔贷款会造出 350 万存款，按 6% 量级的存准率要补约 <b>21 万</b>准备金。准备金不够，就得去银行间市场借——DR007 就是借这个的价钱。"],
+    terms:[["资本充足率","银行自有资本 ÷ 风险加权资产。它决定银行能放大多少倍，和准备金是两回事。"],
+           ["风险权重","不同资产占用的资本不同：房贷 50%，一般企业贷款 100%。所以银行更愿意做房贷。"],
+           ["DR007","银行之间借 7 天资金的加权平均利率，是市场短端利率的代表。"]],
+    imp:[["M2","不变","flat"],["基础货币","不变","flat"]],
+    hint:"看左侧：银行方块被高亮，连着它的箭头也亮着。" },
+
+  { t:"首付：先动的是存量", who:"居民甲 → 开发商乙", edge:"e19",
+    what:["甲先掏出 150 万首付。这是<b>早就存在</b>的一笔存款——可能是攒了十年的工资，从居民账户划到开发商账户。",
+          "这一步<b>不创造任何货币</b>：M2 一分没变，只是这笔钱换了主人。图上它走的是 ⑲「消费」——买房本来就是居民最大的一笔消费支出。",
+          "这一点最容易被搞混：很多人以为「买房的钱进了开发商口袋，所以 M2 增加了」。不是。首付只是搬家。"],
+    tacc:[{who:"居民甲",l:"—",r:"负债 银行存款 −150 万"},
+          {who:"企业乙",l:"资产 银行存款 ＋150 万",r:"—"}],
+    terms:[["首付","买房时自己先出的那部分。它是存量货币的转移，不是新创造的货币。"],
+           ["存量 vs 增量","存量是「已经有的钱换手」，增量是「凭空造出新钱」。首付是前者，贷款是后者。"]],
+    imp:[["M2","不变","flat"],["货币归属","居民 → 企业","flat"]],
+    hint:"看左侧：第 ⑲ 根箭头被点亮——居民的钱流向企业。" },
+
+  { t:"放款：货币被创造的那一瞬间", who:"A 银行 → 居民甲", edge:"e5",
+    what:["银行把 350 万打到甲的账户上。看它做了什么：资产端多一笔「对甲的按揭贷款 350 万」，负债端多一笔「甲的存款 350 万」。",
+          "<b>没有一分钱从别处搬过来</b>——这笔存款是记账记出来的。卖房的钱里，150 万是旧钱，<b>350 万是新钱</b>。",
+          "所以「房价上涨带动 M2 增长」的因果要说准：不是房价涨了所以钱多，而是<b>按揭投放本身就在造钱</b>，按揭越猛，M2 越大。"],
+    tacc:[{who:"A 银行",l:"资产 按揭贷款 ＋350 万",r:"负债 居民甲存款 ＋350 万"}],
+    terms:[["贷款创造存款","银行放贷时同时记两笔：资产端贷款、负债端存款。货币就这样被造出来。"],
+           ["M2","居民和企业的存款总和。这一笔让 M2 直接增加 350 万。"]],
+    imp:[["M2","+350 万","up"],["基础货币","不变","flat"],["贷款余额","+350 万","up"]],
+    hint:"看左侧：第 ⑤ 根箭头被点亮——这是整张图里最典型的「无中生有」。" },
+
+  { t:"付给开发商：跨行转账", who:"甲 → 乙（A 行 → B 行）", node:"bank",
+    what:["甲把 500 万（150 万首付 ＋ 350 万贷款）打给乙。钞票没有动，动的是央行账本上两笔分录。",
+          "A 银行准备金 −500 万、存款 −500 万；B 银行准备金 +500 万、存款 +500 万。<b>M2 一分没变</b>，只是换了个账户。",
+          "但 A 银行的准备金被划走了——如果它事先没留够，这笔转账就过不去。这就是「钱紧」最物理的形态：不是没钱，是准备金不够划。"],
+    tacc:[{who:"A 银行",l:"资产 准备金 −500 万",r:"负债 甲存款 −500 万"},
+          {who:"B 银行",l:"资产 准备金 ＋500 万",r:"负债 乙存款 ＋500 万"}],
+    terms:[["跨行清算","银行之间的转账，最终都在央行账户上划准备金，不搬钞票。"],
+           ["备付金","银行为应付日常划转而多留的超额准备金。"]],
+    imp:[["M2","不变","flat"],["基础货币","不变","flat"]],
+    hint:"注意：总量没变，变的是「谁持有」。图上没有单独画这根，因为它发生在银行体系内部。" },
+
+  { t:"土地出让金：开发商交钱给政府", who:"企业乙 → 政府", edge:"e8",
+    what:["乙拿到 500 万，其中 200 万要交给政府——<b>土地出让金</b>。",
+          "它<b>不是税</b>（走的是政府性基金预算，不是一般公共预算），但钱的走向和税收一样：从企业在银行的存款，划进国库的「政府存款」账户。",
+          "<b>M2 直接少 200 万</b>，银行准备金也少 200 万。这就是为什么土地市场一冷，地方财政和银行流动性会同时紧。"],
+    tacc:[{who:"企业乙",l:"—",r:"负债 银行存款 −200 万"},
+          {who:"央行",l:"—",r:"负债 政府存款 ＋200 万 / 准备金 −200 万"}],
+    terms:[["土地出让金","开发商买地付给政府的钱。不是税，但同样缴入国库，同样抽走银行存款。"],
+           ["国库","政府的钱存在央行，不计入 M2。所以钱一进国库，M2 就少了。"]],
+    imp:[["M2","−200 万","down"],["政府存款","+200 万","up"],["基础货币","−200 万","down"]],
+    hint:"看左侧：第 ⑧ 根箭头被点亮。税收和土地出让金走的是同一条路。" },
+
+  { t:"工程款与工资：钱沿产业链走", who:"企业乙 → 企业丙 / 居民丁", edge:"e18",
+    what:["乙剩下 300 万：付 150 万工程款给建筑商丙（<b>企业 → 企业</b>），发 50 万工资给工人丁（<b>企业 → 居民</b>），留 100 万周转。",
+          "图上 ⑱ 画的就是工资这一步：同一笔存款从企业账户挪到居民账户，<b>M2 一分没变</b>——它不创造货币，但它是居民几乎全部购买力的来源。",
+          "钱转得越快，同样的 M2 能支撑的交易就越多，这就是<b>货币流通速度</b>。它不改变总量，却直接决定物价。"],
+    terms:[["劳动报酬","工资、奖金、劳务费。它是居民收入的来源，也是企业成本的一部分。"],
+           ["货币流通速度","同一笔钱一年被花出去几次。速度下降，等于钱变少了。"]],
+    imp:[["M2","不变","flat"],["居民收入","+50 万","up"]],
+    hint:"看左侧：第 ⑱ 根箭头被点亮——工资不创造货币，但它决定消费能不能起来。" },
+
+  { t:"存款搬家：钱换了个位置", who:"居民丁 → 理财 / 货基", edge:"e16",
+    what:["工人丁把工资结余买了理财。存款就从「居民存款」变成「非银同业存款」——<b>两边都还在 M2 里</b>，总量不变。",
+          "但位置变了：从银行表内的负债，变成非银机构的资金来源。银行可用的钱变少，这就是「存款脱媒」。",
+          "注意建筑商丙不会这么干：他的钱要随时付工程款，必须留在<b>对公活期</b>上。所以同样的 M2，在企业和居民手里「活性」完全不同——这也是 M1 和 M2 增速会分叉的原因。"],
+    tacc:[{who:"居民丁",l:"资产 存款 −",r:"→ 申购理财份额"},
+          {who:"非银机构",l:"资产 存款 ＋",r:"负债 理财份额 ＋"}],
+    terms:[["存款脱媒","存款从银行体系流向非银机构，银行可贷资金减少。"],
+           ["非银同业存款","非银机构存在银行的钱，2011 年起计入 M2。"],
+           ["M1 与 M2","M1 是活钱（现金＋活期），M2 再加上定期和居民储蓄。钱搬去理财，M1 掉得比 M2 快。"]],
+    imp:[["M2","不变（结构变）","flat"],["M1","下降","down"]],
+    hint:"看左侧：第 ⑯ 根箭头被点亮。" },
+
+  { t:"还本付息：货币被消灭", who:"居民甲 → A 银行", edge:"e20",
+    what:["甲每月还房贷。<b>还本</b>：贷款和存款同时减少——这笔货币被消灭了。<b>付息</b>：利息从存款划到银行，存款消失、变成银行的利息收入，同样是货币消灭。",
+          "利率是 <b>LPR 加点</b>，不是固定值：签合同时定下加点，之后每年在重定价日跟着 LPR 走。所以央行降息不等于月供马上降——要等到重定价那一天。",
+          "这也解释了为什么「提前还贷」会直接压缩 M2：它不是在转移钱，是在注销钱。"],
+    tacc:[{who:"A 银行（还本）",l:"资产 按揭贷款 −350 万",r:"负债 甲存款 −350 万"},
+          {who:"A 银行（付息）",l:"—",r:"权益 利息收入 ＋"}],
+    terms:[["货币消灭","还本时贷款和存款同时注销，货币退出流通。"],
+           ["LPR 重定价","房贷利率＝LPR＋固定加点，每年按最新 LPR 调整一次，不是每月变。"]],
+    imp:[["M2","−（本金＋利息）","down"],["贷款余额","−","down"]],
+    hint:"看左侧：第 ⑳ 根箭头被点亮。企业贷款的还本付息是第 ⑥ ⑦ 根，道理完全一样。" },
+
+  { t:"政府把钱花出去：这才叫放水", who:"政府 → 企业 / 居民", edge:"e9",
+    what:["政府收的 200 万土地出让金和税款躺在国库里——到这一步为止，它对流动性全是<b>负贡献</b>。",
+          "要等政府把钱花出去：修路、建学校、发工资，钱才回流企业和居民，M2 回来。这才是放水。",
+          "所以判断财政力度，看的从来不是发了多少债、卖了多少地，而是<b>支出进度</b>。发行 1 万亿而钱躺在国库，等于抽了 1 万亿的水。"],
+    tacc:[{who:"央行",l:"—",r:"负债 政府存款 −100 万 / 准备金 ＋100 万"},
+          {who:"银行",l:"资产 准备金 ＋100 万",r:"负债 企业存款 ＋100 万"}],
+    terms:[["财政存款","政府的钱存在央行，不计入 M2。所以缴税会直接减少 M2。"],
+           ["抽水 / 放水","征税、卖地、发债是抽水；财政支出是放水。只抽不放，就是净紧缩。"]],
+    imp:[["M2","＋（支出额）","up"],["政府存款","−","down"]],
+    hint:"看左侧：第 ⑨ 根箭头被点亮。第 ⑧ 根是它反方向的抽水。" }
+];
+
+let demoBox = null;
+function setDemoBtn(){
+  const b = $("demoBtn");
+  if (!b) return;
+  b.textContent = demo.running ? "⏹ 退出演示" : "▶ 房贷走完全程";
+}
+function demoNote(html, on){
+  const box = $("lastop");
+  if (!box) return;
+  box.innerHTML = html;
+  box.style.cssText = on
+    ? "margin-top:8px;font-size:12px;color:#dfe8f7;line-height:1.7;padding:9px 12px;border:1px solid rgba(77,141,255,.3);border-radius:9px;background:rgba(77,141,255,.07)"
+    : "margin-top:8px;font-size:12px;color:var(--mut);min-height:16px";
+}
+function demoStatus(){
+  if (!demo.running) return;
+  demoNote("第 " + (demo.i + 1) + " / " + DEMO.length + " 步　·　" + (demo.paused ? "手动模式：看完再点「下一步」" : "自动播放中：每 8 秒走一步，随时可暂停"), true);
+}
+function startDemo(){
+  stopDemo(true);
+  demo.running = true;
+  demo.paused = true;
+  demo.i = 0;
+  setDemoBtn();
+  showDemoStep(0);
+}
+function showDemoStep(i){
+  if (!demo.running) return;
+  if (i < 0) i = 0;
+  if (i >= DEMO.length){ endDemo(); return; }
+  demo.i = i;
+  const s = DEMO[i];
+  clearFocus();
+  if (s.edge) setFocus(s.edge, null);
+  else if (s.node) setFocus(null, s.node);
+  const dots = DEMO.map(function(_, k){
+    return '<i class="dp' + (k < i ? ' done' : k === i ? ' cur' : '') + '"></i>';
+  }).join("");
+  const what = s.what.map(function(p){ return '<div class="deep-p">' + p + '</div>'; }).join("");
+  const terms = (s.terms || []).map(function(t){
+    return '<div class="tm"><b>' + t[0] + '</b><p>' + t[1] + '</p></div>';
+  }).join("");
+  const book = (s.tacc && s.tacc.length) ? '<div class="dsub">记账</div>' + taccHTML(s.tacc) : "";
+  const imp = s.imp ? '<div class="dsub">这一步之后</div>' + impactHTML(s.imp) : "";
+  const hint = s.hint ? '<p style="font-size:11px;color:var(--mut2);margin:8px 0 0">' + s.hint + '</p>' : "";
+  const last = i === DEMO.length - 1;
+  panel.innerHTML =
+    '<div id="demoPanel">' +
+      '<div class="pcard">' +
+        '<div class="dprog">' + dots + '<span>' + (i + 1) + ' / ' + DEMO.length + '</span></div>' +
+        '<h3>' + s.t + '</h3>' +
+        '<div class="dwho">谁在动手：<b>' + s.who + '</b></div>' +
+        what + book + imp + hint +
+        '<div class="dctl">' +
+          '<button class="btn" id="dPrev"' + (i === 0 ? ' disabled' : '') + '>◀ 上一步</button>' +
+          '<button class="btn" id="dAuto">' + (demo.paused ? "▶ 自动播放" : "⏸ 暂停") + '</button>' +
+          '<button class="btn primary" id="dNext">' + (last ? "完成 ✓" : "下一步 ▶") + '</button>' +
+        '</div>' +
+      '</div>' +
+      (terms ? '<div class="pcard"><h3>必须懂的词</h3>' + terms + '</div>' : '') +
+    '</div>';
+  const pv = $("dPrev"); if (pv) pv.onclick = function(){ goStep(demo.i - 1); };
+  const au = $("dAuto"); if (au) au.onclick = function(){ toggleAuto(); };
+  const nx = $("dNext"); if (nx) nx.onclick = function(){ goStep(demo.i + 1); };
+  demoStatus();
+}
+function goStep(i){
+  if (!demo.running) return;
+  if (i < 0) return;
+  if (i >= DEMO.length){ endDemo(); return; }
+  showDemoStep(i);
+  restartTimer();
+}
+function restartTimer(){
+  if (demo.timer) clearInterval(demo.timer);
+  demo.timer = null;
+  if (demo.running && !demo.paused){
+    demo.timer = setInterval(function(){
+      if (!demo.running || demo.paused) return;
+      if (!panel.querySelector("#demoPanel")){ stopDemo(true); setDemoBtn(); demoNote("", false); return; }
+      if (demo.i + 1 >= DEMO.length){ endDemo(); return; }
+      showDemoStep(demo.i + 1);
+    }, 8000);
+  }
+}
+function toggleAuto(){
+  if (!demo.running) return;
+  demo.paused = !demo.paused;
+  restartTimer();
+  showDemoStep(demo.i);
+}
+function endDemo(){
+  if (demo.timer) clearInterval(demo.timer);
+  demo.timer = null;
+  demo.running = false;
+  demo.paused = true;
+  setDemoBtn();
+  clearFocus();
+  panel.innerHTML =
+    '<div id="demoPanel"><div class="pcard"><h3>走完了：从一笔逆回购，到一笔存款被消灭</h3>' +
+      '<p>十步之间，回头再看图上这几根：<b style="color:#e8eefc">② 央行投放 → ⑲ 首付搬家 → ⑤ 放贷创造 → ⑧ 财政抽水 → ⑱ 工资 → ⑯ 存款搬家 → ⑳ 还本消灭 → ⑨ 财政放水</b>。</p>' +
+      '<p>一句话总结：<b style="color:#e8eefc">货币在放贷时被创造，在还本时被消灭；在转手时总量不变，在跨部门流动时改变归属。</b></p>' +
+      '<div class="dctl"><button class="btn primary" id="dAgain">重新走一遍</button></div>' +
+    '</div></div>';
+  const r = $("dAgain"); if (r) r.onclick = function(){ startDemo(); };
+  demoNote("演示结束　·　点「重新走一遍」，或按 Esc 退出", true);
+}
+function stopDemo(silent){
+  if (demo.timer) clearInterval(demo.timer);
+  demo.timer = null;
+  demo.running = false;
+  demo.paused = true;
+  if (!silent){ setDemoBtn(); demoNote("", false); panelHome(); }
+  clearFocus();
+}
+
+/* ============================ 筛选 ============================ */
+const CHIPS = [
+  {k:"all",   t:"全部"},
+  {k:"base",  t:"基础货币"},
+  {k:"create",t:"货币创造"},
+  {k:"fiscal",t:"财政"},
+  {k:"bond",  t:"债市"},
+  {k:"shadow",t:"非银·影子"},
+  {k:"cross", t:"跨境"}
+];
+function buildChips(){
+  const box = $("chips");
+  CHIPS.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "chip" + (c.k === "all" ? " on" : "");
+    b.dataset.k = c.k;
+    b.innerHTML = (c.k !== "all" ? `<span class="dot" style="background:${C[c.k]}"></span>` : "") + c.t;
+    b.onclick = () => applyFilter(c.k);
+    box.appendChild(b);
+  });
+}
+const FILTER_NOTE = {
+  base:"基础货币这一层只和银行打交道。钱在这里只决定「有没有水」，还不决定「水去哪」。",
+  create:"货币创造发生在银行和企业、居民之间：放贷记出一笔存款，还本注销一笔存款。",
+  fiscal:"财政是第二个水位调节器：收税与发债抽水，支出放水。看「支出进度」，不看发行规模。",
+  bond:"债市同时干三件事：融资、抵押品、定价。只有一级认购会动货币；二级买卖和回购只动周转。",
+  shadow:"非银不直接创造货币，但它能把银行的资金搬到监管看不到的表外去放贷——那时全系统的存款货币是增加的。",
+  cross:"外汇占款是「资产是外汇」的货币创造。这条管子的粗细，取决于企业和居民愿不愿意结汇。"
+};
+function applyFilter(k){
+  currentKind = k;
+  document.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c.dataset.k === k));
+  clearFocus();
+  EDGES.forEach(e => {
+    const show = k === "all" || e.kind === k;
+    ["edges","labels","badges"].forEach(layer => {
+      const g = svg.querySelector(`#${layer} [data-id="${e.id}"]`);
+      if (g) g.classList.toggle("hidden", !show);
+    });
+  });
+  if (k !== "all"){
+    panel.innerHTML = `<div class="pcard"><h3>${KIND_NAME[k]}</h3>
+      <p>${FILTER_NOTE[k] || ""}</p>
+      <p style="color:var(--mut2);font-size:12px">点图上的箭头看分录，点「全部」回到总览。</p></div>`;
+  } else {
+    panelHome();
+  }
+}
+
+/* ============================ 初始化 ============================ */
+function init(){
+  buildDefs();
+  buildGrid();
+  buildAnnotation();
+  buildToolbox();
+  buildEdges();
+  gNodes = el("g", {id:"nodes"});
+  buildNodes();
+  buildBadges();
+
+  svg.querySelectorAll(".edge[data-id]").forEach(g => {
+    const id = g.getAttribute("data-id");
+    g.addEventListener("click", ev => {
+      ev.stopPropagation();
+      showEdge(EDGES.find(e => e.id === id));
+    });
+  });
+
+  svg.addEventListener("click", ev => {
+    if (ev.target === svg) { clearFocus(); panelHome(); }
+  });
+  document.addEventListener("keydown", ev => {
+    if (ev.key === "Escape"){ stopDemo(); clearFocus(); panelHome(); return; }
+    if (!demo.running) return;
+    if (ev.key === "ArrowRight"){ ev.preventDefault(); goStep(demo.i + 1); }
+    else if (ev.key === "ArrowLeft"){ ev.preventDefault(); goStep(demo.i - 1); }
+    else if (ev.key === " "){ ev.preventDefault(); toggleAuto(); }
+  });
+
+  buildChips();
+  buildOps();
+  buildMetrics();
+  refreshMetrics();
+  panelHome();
+
+  $("resetBtn").onclick = () => {
+    acc = {M2:0,B:0,R:0,G:0,L:0,S:0};
+    refreshMetrics();
+    $("lastop").innerHTML = "已重置。所有指标回到 0 变动。";
+    stopDemo();
+  };
+  $("demoBtn").onclick = () => { demo.running ? stopDemo() : startDemo(); };
+  $("waterOut").onclick = () => toggleWater("out");
+  $("waterIn").onclick = () => toggleWater("in");
+}
+init();
+})();
+</script>
+</body>
+</html>
